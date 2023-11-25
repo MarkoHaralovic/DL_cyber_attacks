@@ -32,5 +32,5 @@ The CIFAR-10 dataset consists of 60000 32x32 color images in 10 classes, with 60
 
 The dataset is divided into five training batches and one test batch, each with 10000 images. The test batch contains exactly 1000 randomly-selected images from each class. The training batches contain the remaining images in random order, but some training batches may contain more images from one class than another. Between them, the training batches contain exactly 5000 images from each class.
 
-10 classes present in the datset are: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, and truck.
+10 classes present in the dataset are: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, and truck.
 
