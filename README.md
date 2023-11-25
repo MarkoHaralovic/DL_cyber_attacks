@@ -14,7 +14,7 @@ Similarily, backdoor defense in Deep Neural Networks is a methodology to evade s
 | Method            | Article Name                                                                                                   | Link |
 |-------------------|----------------------------------------------------------------------------------------------------------------|------|
 | Neural Cleanse    | Neural Cleanse: Identifying and Mitigating Backdoor Attacks in Neural Network | [#](https://people.cs.uchicago.edu/~ravenben/publications/pdf/backdoor-sp19.pdf) |
-| Fine-Pruning           |        | [#](https://www.researchgate.net/profile/Siddharth-Garg/publication/325483856_Fine-Pruning_[…]ng-Against-Backdooring-Attacks-on-Deep-Neural-Networks.pdf) |
+| Fine-Pruning           | Fine-Pruning: Defending Against Backdooring Attacks on Deep Neural Networks  | [#](https://www.researchgate.net/profile/Siddharth-Garg/publication/325483856_Fine-Pruning_[…]ng-Against-Backdooring-Attacks-on-Deep-Neural-Networks.pdf) |
 | Jittering         | Effective Backdoor Defense by Exploiting Sensitivity of Poisoned Samples  | [#](https://proceedings.neurips.cc/paper_files/paper/2022/hash/3f9bbf77fbd858e5b6e39d39fe84ed2e-Abstract-Conference.html) |
 
 ## Backdoor Attacks
