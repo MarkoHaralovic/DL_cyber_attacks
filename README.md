@@ -34,3 +34,7 @@ The dataset is divided into five training batches and one test batch, each with 
 
 10 classes present in the dataset are: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, and truck.
 
+## Setup
+
+All dependencies are provided in requirements.txt. Run command pip install -r requirements.txt to install requirements
+to run this project locally.

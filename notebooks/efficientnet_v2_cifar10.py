@@ -2,7 +2,6 @@ import numpy as np
 import torch
 print(torch.__version__) 
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 import PIL.Image as Image
 import torchvision 
 from torchvision import transforms 
@@ -11,9 +10,12 @@ from torchvision.models import efficientnet_v2_s
 from torch.utils.data import Dataset, DataLoader, random_split,TensorDataset
 from torchsummary import summary
 from Data import Data
-from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
+
+print(torch.__version__) 
+print(torchvision.__version__) 
+
 
 
 train_images = "DL_cyber_attacks\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
@@ -114,7 +116,7 @@ def evaluate_model(model, data_loader, device):
     total = 0
     correct = 0
     i = 0
-    resize_transform = transforms.Resize((224, 224))
+    resize_transform = transforms.Resize((224, 224), antialias=True)
 
     with torch.no_grad():
         for images, labels in tqdm(data_loader):
