@@ -45,15 +45,8 @@ cifar_10_dataset= Data(train_images=train_images,train_labels=train_labels,
                      test_images=test_images,test_labels=test_labels)
 
 
-input_shape = (32, 32, 3) 
-resized_shape = (224, 224) 
-classes = (
-        'plane', 'car', 'bird', 'cat', 'deer',
-        'dog', 'frog', 'horse', 'ship', 'truck'
-    )
-num_classes = 10
-
 cifar_10_dataset.normalize()
+cifar_10_dataset.show_images()
 
 mean_r,mean_g, mean_b, std_r, std_g, std_b = cifar_10_dataset.mean_std(dataset="train")
 print(mean_b, mean_g, mean_r, std_r, std_g, std_b)
@@ -70,7 +63,7 @@ train_dataset = TensorDataset(train_data, train_labels)
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)
 
 
-model = torch.hub.load('hankyul2/EfficientNetV2-pytorch', model_name, nclass=10, skip_validation=False)
+model = torch.hub.load('hankyul2/EfficientNetV2-pytorch', model_name, nclass=cifar_10_dataset.num_classes, skip_validation=False)
 state_dict = torch.load(weight_path)
 model.load_state_dict(state_dict)
 print(model)

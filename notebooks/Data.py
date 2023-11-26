@@ -2,6 +2,8 @@ import numpy as np
 from torchvision import transforms 
 import PIL.Image as Image
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 class Data:
    def __init__(self, train_images,train_labels, test_images, test_labels, train_transform = None,test_transform = None):
@@ -17,6 +19,20 @@ class Data:
       self.shape = self.test_images[0].shape
       self.train_transform = train_transform
       self.test_transform = test_transform
+      self.classes = [
+            "airplane",
+            "automobile",
+            "bird",
+            "cat",
+            "deer",
+            "dog",
+            "frog",
+            "horse",
+            "ship",
+            "truck"
+         ]
+      self.num_classes = len(self.classes)
+
       
    
    def __len__(self):
@@ -126,6 +142,27 @@ class Data:
       self.valid_labels = valid_labels
       
       return
+   
+   def show_images(self):
+      """
+      Vizualizing one image per class 
+      
+      """
+      num_train, img_channels, img_rows, img_cols = self.train_images.shape
+      num_classes = len(np.unique(self.classes))
+      fig = plt.figure(figsize=(10, 3))
+      
+      for i in range(num_classes):
+        ax = fig.add_subplot(2, 5, 1 + i, xticks=[], yticks=[])
+        idx = np.where(self.train_labels[:] == i)[0]
+        x_idx = self.train_images[idx, ::]
+        img_num = np.random.randint(x_idx.shape[0])
+        im = np.transpose(x_idx[img_num, ::], (0, 1, 2))
+        ax.set_title(self.classes[i])
+        plt.imshow(im)
+
+      plt.show()
+      
       
       
       
