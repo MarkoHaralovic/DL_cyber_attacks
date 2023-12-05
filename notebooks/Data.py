@@ -47,6 +47,30 @@ class Data:
       if self.train_transform:
          sample = self.train_transform(sample)
       return sample, label
+   def visualize_class_images(self, class_name, n):
+    """
+    Visualize n instances of a specific class of the dataset.
+    """
+
+    class_idx = self.classes.index(class_name)
+    
+    indices = np.where(self.train_labels == class_idx)[0]
+
+    selected_indices = np.random.choice(indices, n, replace=False)
+    if n == 1:
+        fig, axes = plt.subplots(figsize=(3, 3))
+        axes = [axes]
+    else:
+        fig, axes = plt.subplots(1, n, figsize=(n * 3, 3))
+    
+    for i, idx in enumerate(selected_indices):
+        img = self.train_images[idx]
+        img = img.transpose(0,1,2)
+        axes[i].imshow(img)
+        axes[i].axis('off')
+    
+    plt.show()
+
       
    def normalize(self):
       """
