@@ -46,7 +46,7 @@ cifar_10_dataset= Data(train_images=train_images,train_labels=train_labels,
 
 
 cifar_10_dataset.normalize()
-cifar_10_dataset.show_images()
+# cifar_10_dataset.show_images()
 
 mean_r,mean_g, mean_b, std_r, std_g, std_b = cifar_10_dataset.mean_std(dataset="train")
 print(mean_b, mean_g, mean_r, std_r, std_g, std_b)
@@ -126,13 +126,9 @@ def evaluate_model(model, data_loader, device):
     return accuracy
 
 
-accuracy = evaluate_model(model, test_loader, device)
-print(f'Test Accuracy: {accuracy}%')
-
-
 # lr = 1e-5
 # momentum = 0.9
-# epochs = 100
+# epochs = 1
 # log_interval = 100
 
 # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
@@ -142,3 +138,6 @@ print(f'Test Accuracy: {accuracy}%')
 #         scheduler.step(epoch)
 #         train(model, epoch, optimizer, train_loader)
 #         test(model, test_loader)
+        
+accuracy = evaluate_model(model, test_loader, device)
+print(f'Test Accuracy: {accuracy}%')
