@@ -64,6 +64,7 @@ train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)
 
 
 model = torch.hub.load('hankyul2/EfficientNetV2-pytorch', model_name, nclass=cifar_10_dataset.num_classes, skip_validation=False)
+model.to(device)
 state_dict = torch.load(weight_path)
 model.load_state_dict(state_dict)
 print(model)
