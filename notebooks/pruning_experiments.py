@@ -18,20 +18,20 @@ MODEL_NAME = "efficientnet_v2_s"
 WEIGHT_PATH = os.path.join("..", "models", "efficientnet_v2_s_cifar10.pth")
 
 # Experiment parameters
-EXP_NAME = "initial_limit_128"
+EXP_NAME = "v2_no_limit"
 
 PRUNING_RATES = [i / 10 for i in range(11)]
 LAYER_KEYS = [
     "blocks.39.block.depth_wise.0",
+    "blocks.39.block.point_wise.0",
     "blocks.39.block.linear_bottleneck.0",
-    # "blocks.39.block.se.fc1",  # ova dva potupno povezana sloja  mogla bi biti zeznuta jer se nadovezuju jedan na drugog
-    # "blocks.39.block.se.fc2",
-    "blocks.39.block.point_wise.0"
+    "blocks.39.block.se.fc1",  # ova dva potupno povezana sloja  mola bi biti zeznuta jer se nadovezuju jedan na drugog
+    "blocks.39.block.se.fc2",
 ]
 
-TRAIN_SIZE_LIMIT = 128
-TEST_SIZE_LIMIT = 6000
-BATCH_SIZE = 32
+TRAIN_SIZE_LIMIT = 50000
+TEST_SIZE_LIMIT = 10000
+BATCH_SIZE = 128
 NUM_WORKERS = 1
 
 
@@ -43,7 +43,7 @@ def evaluate_model(model, data_loader, device):
     resize_transform = transforms.Resize((224, 224), antialias=True)
 
     with torch.no_grad():
-        for images, labels in tqdm(data_loader):
+        for images, labels in tqdm(data_loader, desc="Evaulating model"):
             # Resize images here if facing memory issues with whole dataset reshaped at once
             images = torch.stack([resize_transform(img) for img in images])
             images, labels = images.to(device), labels.to(device)
@@ -57,7 +57,7 @@ def evaluate_model(model, data_loader, device):
     return accuracy
 
 
-def prune_layer(model, layer_to_prune,layer_weight_key, prune_rate):
+def prune_layer(model, layer_to_prune, layer_weight_key, prune_rate):
     with torch.no_grad():
         container = []
 
@@ -67,12 +67,11 @@ def prune_layer(model, layer_to_prune,layer_weight_key, prune_rate):
         hook = layer_to_prune.register_forward_hook(forward_hook)
 
         model.eval()
-        for data, _ in tr_loader:
-            if device == "cuda":
+        for data, _ in tqdm(tr_loader, desc="Collecting layer outputs"):
+            if device.type == "cuda":
                 model(data.cuda())
             else:
                 model(data)
-
         hook.remove()
 
         container = torch.cat(container, dim=0)
@@ -86,11 +85,10 @@ def prune_layer(model, layer_to_prune,layer_weight_key, prune_rate):
             mask[element, :, :, :] = 0
         if layer_weight_key == "blocks.39.block.depth_wise.0":
             model.blocks[39].block.depth_wise[0].weight.data *= mask
-        elif layer_weight_key ==  "blocks.39.block.point_wise.0":
+        elif layer_weight_key == "blocks.39.block.point_wise.0":
             model.blocks[39].block.point_wise[0].weight.data *= mask
-        elif layer_weight_key ==  "blocks.39.block.linear_bottleneck.0":
+        elif layer_weight_key == "blocks.39.block.linear_bottleneck.0":
             model.blocks[39].block.linear_bottleneck[0].weight.data *= mask
-            
 
 
 if __name__ == "__main__":
@@ -129,15 +127,20 @@ if __name__ == "__main__":
     # Test
     test_data = torch.tensor(cifar_10_dataset.test_images, dtype=torch.float32).permute(
         0, 3, 1, 2
-    )[
-        :TEST_SIZE_LIMIT
-    ]
+    )[:TEST_SIZE_LIMIT]
     test_labels = torch.tensor(cifar_10_dataset.test_labels, dtype=torch.long)[
         :TEST_SIZE_LIMIT
     ]
 
     test_dataset = TensorDataset(test_data, test_labels)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        drop_last=True,
+        pin_memory=True,
+        shuffle=False,
+    )
 
     # Load model
     print("Loading model...")
@@ -164,10 +167,9 @@ if __name__ == "__main__":
         raise AttributeError("Layers were wrongly named")
 
     print("Selected layers:")
-    for layer_to_prune,_ in layers_to_prune.items():
+    for layer_to_prune, _ in layers_to_prune.items():
         print("\tLayer to prune:", layer_to_prune)
         print("\tWeights shape:", layer_to_prune.weight.size())
-    print()
 
     # original state of the model to go back to after pruning a layer in the following iteration
     original_state_dict = copy.deepcopy(model.state_dict())
@@ -177,25 +179,25 @@ if __name__ == "__main__":
     print("\nStarting pruning")
 
     os.makedirs(CSV_PRUNING_DIR, exist_ok=True)
-    csv_file_path = os.path.join(
-        CSV_PRUNING_DIR, f"evaluate_pruning_{EXP_NAME}.csv"
-    )  # f"../csv_records/pruning/evaluate_pruning_{EXP_NAME}.csv"
+    csv_file_path = os.path.join(CSV_PRUNING_DIR, f"evaluate_pruning_{EXP_NAME}.csv")
     with open(csv_file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["model_name", "pruning_rate", "layer_name", "accuracy"])
 
-        for layer_idx, layer_to_prune in enumerate(layers_to_prune):
-            print(f"Pruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
-            for rate in tqdm(PRUNING_RATES):
-                prune_layer(model, layer_to_prune,layers_to_prune[layer_to_prune], rate)
-                accuracy = evaluate_model(model, test_loader, device)
-                print(f"Accuracy: {accuracy} for {layer_to_prune} and rate {rate}")
+    for layer_idx, layer_to_prune in enumerate(layers_to_prune):
+        print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
+        for rate in PRUNING_RATES:
+            print(f"Pruning with rate {rate}")
+            prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate)
+
+            accuracy = evaluate_model(model, test_loader, device)
+            print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+
+            with open(csv_file_path, mode="a", newline="") as file:
+                writer = csv.writer(file)
                 writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy])
 
-                # restore model parameters
-                model.load_state_dict(copy.deepcopy(original_state_dict))
-                
+            # restore model parameters
+            model.load_state_dict(copy.deepcopy(original_state_dict))
 
-            print()
-
-    print("Done")
+    print("\nDone")
