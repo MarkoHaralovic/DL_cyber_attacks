@@ -20,17 +20,17 @@ WEIGHT_PATH = os.path.join("..", "models", "efficientnet_v2_s_cifar10.pth")
 # Experiment parameters
 EXP_NAME = "initial_limit_128"
 
-PRUNING_RATES = [i / 10 for i in range(7,11)]
+PRUNING_RATES = [i / 10 for i in range(11)]
 LAYER_KEYS = [
     "blocks.39.block.depth_wise.0",
-    # "blocks.39.block.linear_bottleneck.0",
+    "blocks.39.block.linear_bottleneck.0",
     # "blocks.39.block.se.fc1",  # ova dva potupno povezana sloja  mogla bi biti zeznuta jer se nadovezuju jedan na drugog
     # "blocks.39.block.se.fc2",
     "blocks.39.block.point_wise.0"
 ]
 
 TRAIN_SIZE_LIMIT = 128
-TEST_SIZE_LIMIT = 128
+TEST_SIZE_LIMIT = 6000
 BATCH_SIZE = 32
 NUM_WORKERS = 1
 
@@ -88,6 +88,9 @@ def prune_layer(model, layer_to_prune,layer_weight_key, prune_rate):
             model.blocks[39].block.depth_wise[0].weight.data *= mask
         elif layer_weight_key ==  "blocks.39.block.point_wise.0":
             model.blocks[39].block.point_wise[0].weight.data *= mask
+        elif layer_weight_key ==  "blocks.39.block.linear_bottleneck.0":
+            model.blocks[39].block.linear_bottleneck[0].weight.data *= mask
+            
 
 
 if __name__ == "__main__":
