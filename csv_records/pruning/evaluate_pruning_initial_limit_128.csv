@@ -1,0 +1,9 @@
+model_name,pruning_rate,layer_name,accuracy
+model,0.7,blocks.39.block.depth_wise.0,94.53125
+model,0.8,blocks.39.block.depth_wise.0,94.53125
+model,0.9,blocks.39.block.depth_wise.0,94.53125
+model,1.0,blocks.39.block.depth_wise.0,94.53125
+model,0.7,blocks.39.block.point_wise.0,94.53125
+model,0.8,blocks.39.block.point_wise.0,94.53125
+model,0.9,blocks.39.block.point_wise.0,94.53125
+model,1.0,blocks.39.block.point_wise.0,94.53125

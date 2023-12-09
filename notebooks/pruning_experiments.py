@@ -20,13 +20,13 @@ WEIGHT_PATH = os.path.join("..", "models", "efficientnet_v2_s_cifar10.pth")
 # Experiment parameters
 EXP_NAME = "initial_limit_128"
 
-PRUNING_RATES = [i / 10 for i in range(11)]
+PRUNING_RATES = [i / 10 for i in range(7,11)]
 LAYER_KEYS = [
     "blocks.39.block.depth_wise.0",
     # "blocks.39.block.linear_bottleneck.0",
-    # "blocks.39.block.se.fc1",  # ova dva potupno povezana sloja  mola bi biti zeznuta jer se nadovezuju jedan na drugog
+    # "blocks.39.block.se.fc1",  # ova dva potupno povezana sloja  mogla bi biti zeznuta jer se nadovezuju jedan na drugog
     # "blocks.39.block.se.fc2",
-    "blocks.39.block.point_wise.0",
+    "blocks.39.block.point_wise.0"
 ]
 
 TRAIN_SIZE_LIMIT = 128
@@ -57,7 +57,7 @@ def evaluate_model(model, data_loader, device):
     return accuracy
 
 
-def prune_layer(model, layer_to_prune, prune_rate):
+def prune_layer(model, layer_to_prune,layer_weight_key, prune_rate):
     with torch.no_grad():
         container = []
 
@@ -84,8 +84,10 @@ def prune_layer(model, layer_to_prune, prune_rate):
         mask = torch.ones(layer_to_prune.weight.size()).to(device)
         for element in seq_sort[:prunned_channels]:
             mask[element, :, :, :] = 0
-
-        layer_to_prune.weight.data *= mask
+        if layer_weight_key == "blocks.39.block.depth_wise.0":
+            model.blocks[39].block.depth_wise[0].weight.data *= mask
+        elif layer_weight_key ==  "blocks.39.block.point_wise.0":
+            model.blocks[39].block.point_wise[0].weight.data *= mask
 
 
 if __name__ == "__main__":
@@ -124,7 +126,9 @@ if __name__ == "__main__":
     # Test
     test_data = torch.tensor(cifar_10_dataset.test_images, dtype=torch.float32).permute(
         0, 3, 1, 2
-    )[:TEST_SIZE_LIMIT]
+    )[
+        :TEST_SIZE_LIMIT
+    ]
     test_labels = torch.tensor(cifar_10_dataset.test_labels, dtype=torch.long)[
         :TEST_SIZE_LIMIT
     ]
@@ -148,16 +152,16 @@ if __name__ == "__main__":
     model.load_state_dict(state_dict)
 
     # Select layers that should be pruned
-    layers_to_prune = []
+    layers_to_prune = {}
     for name, module in model.named_modules():
         if name in LAYER_KEYS:
-            layers_to_prune.append(module)
+            layers_to_prune[module] = name
 
     if layers_to_prune is None:
         raise AttributeError("Layers were wrongly named")
 
     print("Selected layers:")
-    for layer_to_prune in layers_to_prune:
+    for layer_to_prune,_ in layers_to_prune.items():
         print("\tLayer to prune:", layer_to_prune)
         print("\tWeights shape:", layer_to_prune.weight.size())
     print()
@@ -180,13 +184,14 @@ if __name__ == "__main__":
         for layer_idx, layer_to_prune in enumerate(layers_to_prune):
             print(f"Pruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
             for rate in tqdm(PRUNING_RATES):
-                prune_layer(model, layer_to_prune, rate)
+                prune_layer(model, layer_to_prune,layers_to_prune[layer_to_prune], rate)
                 accuracy = evaluate_model(model, test_loader, device)
-
+                print(f"Accuracy: {accuracy} for {layer_to_prune} and rate {rate}")
                 writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy])
 
                 # restore model parameters
                 model.load_state_dict(copy.deepcopy(original_state_dict))
+                
 
             print()
 
