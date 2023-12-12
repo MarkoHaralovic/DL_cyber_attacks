@@ -25,7 +25,7 @@ LAYER_KEYS = [
     "blocks.39.block.depth_wise.0",
     "blocks.39.block.point_wise.0",
     "blocks.39.block.linear_bottleneck.0",
-    "blocks.39.block.se.fc1",  # ova dva potupno povezana sloja  mola bi biti zeznuta jer se nadovezuju jedan na drugog
+    "blocks.39.block.se.fc1",  
     "blocks.39.block.se.fc2",
 ]
 
@@ -36,6 +36,19 @@ NUM_WORKERS = 1
 
 
 def evaluate_model(model, data_loader, device):
+    """ Efficient Net model evaluation
+
+    Args:
+        model (torch.nn.Module): The neural network model to be evaluated.
+        data_loader (DataLoader): DataLoader object providing a dataset for evaluation. 
+                                  The dataset should yield pairs of images and their corresponding labels.
+        device (str): The device on which the model and data are loaded for evaluation. 
+                      Typically 'cuda' for GPU or 'cpu' for CPU.
+
+    Returns:
+        float: The accuracy of the model on the provided dataset, calculated as the percentage of correctly predicted samples.
+
+    """
     model.eval()
     total = 0
     correct = 0
@@ -58,6 +71,24 @@ def evaluate_model(model, data_loader, device):
 
 
 def prune_layer(model, layer_to_prune, layer_weight_key, prune_rate):
+    """
+    Prune the specified layer of the model by setting the weights of certain channels to zero.
+
+    Args:
+        model (torch.nn.Module): The neural network model that is being pruned. 
+        
+        layer_to_prune (torch.nn.Module): The specific layer within the model that is to be pruned.
+                                          This is typically a convolutional layer in the last block of the model.
+        
+        layer_weight_key (str): A key that uniquely identifies the layer to prune in the model's
+                                state dictionary. This key is used to access and modify the weights
+                                of the layer directly.
+        
+        prune_rate (float): The proportion of channels to prune in the given layer. This rate should
+                            be a float between 0 and 1, where 1 means pruning all channels and 0 means
+                            pruning none.
+
+    """
     with torch.no_grad():
         container = []
 
