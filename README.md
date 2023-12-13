@@ -37,4 +37,4 @@ The dataset is divided into five training batches and one test batch, each with 
 ## Setup
 
 All dependencies are provided in requirements.txt. Run command pip install -r requirements.txt 
-to install requirements to run this project loca
+to install requirements to run this project locally
