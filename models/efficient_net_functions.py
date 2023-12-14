@@ -1,4 +1,5 @@
 import torch
+import datetime
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
@@ -25,9 +26,9 @@ def test(model, test_loader, criterion=nn.CrossEntropyLoss()):
     
 def evaluate_model(model, data_loader, device):
     model.eval()  
-    total = 0
-    correct = 0
-    i = 0
+    total_loss = 0.0
+    total_correct = 0
+    total_size = 0
     resize_transform = transforms.Resize((224, 224), antialias=True)
 
     with torch.no_grad():
@@ -36,17 +37,20 @@ def evaluate_model(model, data_loader, device):
             images = torch.stack([resize_transform(img) for img in images])
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
             _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            i = i + 1
+            total_correct += (predicted == labels).sum().item()
+            total_size += labels.size(0)
 
-    accuracy = 100 * correct / total
-    return accuracy
- 
+    average_loss = total_loss / total_size
+    accuracy = 100 * total_correct / total_size
+    return average_loss, accuracy
 
+    
 def _train(model, epoch, optimizer, train_loader, criterion=nn.CrossEntropyLoss(), log_interval = 100):
     total_loss = 0
+    total_correct = 0
     total_size = 0
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -55,6 +59,8 @@ def _train(model, epoch, optimizer, train_loader, criterion=nn.CrossEntropyLoss(
         output = model(data)
         loss = criterion(output, target)
         total_loss += loss.item()
+        _, predicted = torch.max(output.data, 1)
+        total_correct += (predicted == target).sum().item()
         total_size += data.size(0)
         loss.backward()
         optimizer.step()
@@ -62,6 +68,11 @@ def _train(model, epoch, optimizer, train_loader, criterion=nn.CrossEntropyLoss(
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tAverage loss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), total_loss / total_size))
+
+    epoch_loss = total_loss / total_size
+    epoch_acc = 100. * (total_correct / total_size)
+    return epoch_loss, epoch_acc
+
             
             
 def train(model, epochs, optimizer, train_loader, val_loader, criterion=nn.CrossEntropyLoss(), device='cpu'):
@@ -96,12 +107,32 @@ def train(model, epochs, optimizer, train_loader, val_loader, criterion=nn.Cross
             print(f'New best model found at epoch {epoch}. Saving model...')
             torch.save(model.state_dict(), f'best_model_epoch_{epoch}.pth')
 
-def load_model(n_classes, model_name='efficientnet_v2_s', device='cpu',pretrained=True, tranfer_learning=False):
-   if pretrained or transfer_learning:
+def load_model(n_classes, model_name='efficientnet_v2_s', device='cpu',pretrained=True, transfer_learning=False):
+   if pretrained :
+        model = torch.hub.load('hankyul2/EfficientNetV2-pytorch', model_name,  nclass=n_classes,skip_validation=False)
+        model.to(device)
+   elif transfer_learning:
+    #    model = models.efficientnet_b0(pretrained=pretrained)
         model = torch.hub.load('hankyul2/EfficientNetV2-pytorch', model_name,  nclass=n_classes,skip_validation=False)
         model.to(device)
    else:
       from tensorflow.keras.applications import EfficientNetB0
       model = EfficientNetB0(weights='imagenet')
    return model
-      
+
+import datetime
+
+def save_model(epochs, model, optimizer, criterion, pretrained):
+    """
+    Function to save the trained model to memory.
+    """
+    current_date = datetime.datetime.now().strftime("%Y%m%d")  # Format: YYYYMMDD
+
+    filename = f"../checkpoints/efficinet_net_b0_finetune_{pretrained}_{current_date}.pth"
+
+    torch.save({
+        'epoch': epochs,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': criterion,
+    }, filename)
