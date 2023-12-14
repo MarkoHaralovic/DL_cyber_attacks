@@ -130,6 +130,7 @@ def evaluate_model(model, data_loader, device):
 # lr = 1e-5
 # momentum = 0.9
 # epochs = 1
+# log_interval = 100
 
 # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.975)

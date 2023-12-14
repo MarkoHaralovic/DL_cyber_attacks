@@ -1,3 +1,11 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from torchvision import transforms, models
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def test(model, test_loader, criterion=nn.CrossEntropyLoss()):
     model.eval()
     test_loss = 0
@@ -37,7 +45,7 @@ def evaluate_model(model, data_loader, device):
     return accuracy
  
 
-def train(model, epoch, optimizer, train_loader, criterion=nn.CrossEntropyLoss()):
+def _train(model, epoch, optimizer, train_loader, criterion=nn.CrossEntropyLoss(), log_interval = 100):
     total_loss = 0
     total_size = 0
     model.train()
@@ -54,17 +62,46 @@ def train(model, epoch, optimizer, train_loader, criterion=nn.CrossEntropyLoss()
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tAverage loss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), total_loss / total_size))
+            
+            
+def train(model, epochs, optimizer, train_loader, val_loader, criterion=nn.CrossEntropyLoss(), device='cpu'):
+    best_val_accuracy = 0.0
+    for epoch in range(epochs):
+        # Training phase
+        model.train()
+        total_loss = 0
+        total_size = 0
+        for batch_idx, (data, target) in enumerate(train_loader):
+            data, target = data.to(device), target.to(device)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            total_loss += loss.item()
+            total_size += data.size(0)
+            loss.backward()
+            optimizer.step()
 
-def load_model(n_classes, model_name=None, device='cpu',pretrained=True, tranfer_learning=False):
-   if pretrained:
-      model = torch.hub.load('hankyul2/EfficientNetV2-pytorch', model_name, nclass=cifar_10_dataset.num_classes, skip_validation=False)
-      model.to(device)
-      state_dict = torch.load(weight_path)
-      model.load_state_dict(state_dict)
-   elif transfer_learning:
-      from tensorflow.keras.applications import EfficientNetB0
-      model = EfficientNetB0(include_top=False, weights='imagenet')
+            if batch_idx % log_interval == 0:
+                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tAverage loss: {:.6f}'.format(
+                    epoch, batch_idx * len(data), len(train_loader.dataset),
+                    100. * batch_idx / len(train_loader), total_loss / total_size))
+
+        # Validation phase
+        val_accuracy = evaluate_model(model, val_loader, device)
+        print(f'Epoch {epoch}: Validation Accuracy: {val_accuracy}%')
+
+        # Checkpointing
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
+            print(f'New best model found at epoch {epoch}. Saving model...')
+            torch.save(model.state_dict(), f'best_model_epoch_{epoch}.pth')
+
+def load_model(n_classes, model_name='efficientnet_v2_s', device='cpu',pretrained=True, tranfer_learning=False):
+   if pretrained or transfer_learning:
+        model = torch.hub.load('hankyul2/EfficientNetV2-pytorch', model_name,  nclass=n_classes,skip_validation=False)
+        model.to(device)
    else:
       from tensorflow.keras.applications import EfficientNetB0
       model = EfficientNetB0(weights='imagenet')
+   return model
       
