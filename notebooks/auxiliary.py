@@ -6,16 +6,16 @@ import numpy as np
 from PIL import Image
 from Data import Data
 
-train_images = "datasets/CIFAR10/cifar-10/train/data.npy"
-train_labels = "datasets/CIFAR10/cifar-10/train/labels.npy"
-test_images = "datasets/CIFAR10/cifar-10/test/data.npy"
-test_labels = "datasets/CIFAR10/cifar-10/test/labels.npy"
+train_images = "../datasets/CIFAR10/cifar-10/train/data.npy"
+train_labels = "../datasets/CIFAR10/cifar-10/train/labels.npy"
+test_images = "../datasets/CIFAR10/cifar-10/test/data.npy"
+test_labels = "../datasets/CIFAR10/cifar-10/test/labels.npy"
 
 cifar_10_dataset = Data(train_images=train_images, train_labels=train_labels,
                         test_images=test_images, test_labels=test_labels)
 
 # Vizualize one image per class present in the dataset
-# cifar_10_dataset.show_images()
+cifar_10_dataset.show_images()
 
 print(f"Number of classes in CIFAR10 dataset: {cifar_10_dataset.num_classes}")
 print("Classes in CIFAR10 dataset : ", cifar_10_dataset.classes)
