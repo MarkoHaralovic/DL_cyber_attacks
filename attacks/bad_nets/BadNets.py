@@ -10,6 +10,8 @@ import random
 import copy
 from torchvision.transforms import Compose
 
+from ..base import *
+
 
 class AddTrigger:
     def __init__(self):
@@ -128,6 +130,74 @@ class ModifyTarget:
 
     def __call__(self, y_target):
         return self.y_target
+
+
+class BadNets(Base):
+    """Construct poisoned datasets with BadNets method.
+
+    Args:
+        train_dataset (types in support_list): Benign training dataset.
+        test_dataset (types in support_list): Benign testing dataset.
+        model (torch.nn.Module): Network.
+        loss (torch.nn.Module): Loss.
+        y_target (int): N-to-1 attack target label.
+        poisoned_rate (float): Ratio of poisoned samples.
+        pattern (None | torch.Tensor): Trigger pattern, shape (C, H, W) or (H, W).
+        weight (None | torch.Tensor): Trigger pattern weight, shape (C, H, W) or (H, W).
+        poisoned_transform_train_index (int): The position index that poisoned transform will be inserted in train dataset. Default: 0.
+        poisoned_transform_test_index (int): The position index that poisoned transform will be inserted in test dataset. Default: 0.
+        poisoned_target_transform_index (int): The position that poisoned target transform will be inserted. Default: 0.
+        schedule (dict): Training or testing schedule. Default: None.
+        seed (int): Global seed for random numbers. Default: 0.
+        deterministic (bool): Sets whether PyTorch operations must use "deterministic" algorithms.
+            That is, algorithms which, given the same input, and when run on the same software and hardware,
+            always produce the same output. When enabled, operations will use deterministic algorithms when available,
+            and if only nondeterministic algorithms are available they will throw a RuntimeError when called. Default: False.
+    """
+
+    def __init__(self,
+                 train_dataset,
+                 test_dataset,
+                 model,
+                 loss,
+                 y_target,
+                 poisoned_rate,
+                 pattern=None,
+                 weight=None,
+                 poisoned_transform_train_index=0,
+                 poisoned_transform_test_index=0,
+                 poisoned_target_transform_index=0,
+                 schedule=None,
+                 seed=0,
+                 deterministic=False):
+        assert pattern is None or (isinstance(pattern, torch.Tensor) and ((0 < pattern) & (pattern < 1)).sum() == 0), 'pattern should be None or 0-1 torch.Tensor.'
+
+        super(BadNets, self).__init__(
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            model=model,
+            loss=loss,
+            schedule=schedule,
+            seed=seed,
+            deterministic=deterministic)
+
+        self.poisoned_train_dataset = PoisonedCIFAR10(
+            train_dataset,
+            y_target,
+            poisoned_rate,
+            pattern,
+            weight,
+            poisoned_transform_train_index,
+            poisoned_target_transform_index)
+
+        self.poisoned_test_dataset = PoisonedCIFAR10(
+            test_dataset,
+            y_target,
+            1.0,
+            pattern,
+            weight,
+            poisoned_transform_test_index,
+            poisoned_target_transform_index)
 
 
 if __name__ == "__main__":
