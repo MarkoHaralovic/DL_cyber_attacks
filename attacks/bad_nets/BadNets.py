@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import random
 import copy
 from torchvision.transforms import Compose
-
-from ..base import *
+from notebooks.Data import Data
+from attacks.bad_nets.base import *
 
 
 class AddTrigger:
@@ -201,8 +201,29 @@ class BadNets(Base):
 
 
 if __name__ == "__main__":
-    print(os.getcwd())
     pattern = Image.open(r"../../resources/bad_nets/trigger_image.png")
-    plt.imshow(pattern, interpolation="nearest")
-    plt.show()
-    train_data = np.load(r"../../datasets/CIFAR10/cifar-10/train/data.npy")
+    poisoned_image_class = "airplane"
+
+    train_data_path = r"../../datasets/CIFAR10/cifar-10/train/data.npy"
+    train_labels_path = r"../../datasets/CIFAR10/cifar-10/train/labels.npy"
+    test_data_path = r"../../datasets/CIFAR10/cifar-10/test/data.npy"
+    test_labels_path = r"../../datasets/CIFAR10/cifar-10/test/labels.npy"
+
+    dataset = Data(train_data_path, train_labels_path, test_data_path, test_labels_path)
+    train_data, test_data = dataset.train_images, dataset.test_images
+
+    bad_nets = BadNets(
+        train_dataset=train_data,
+        test_dataset=test_data,
+        model=None,
+        loss=nn.CrossEntropyLoss(),
+        y_target=dataset.classes.index(poisoned_image_class),  # all poisoned images will be labeled as "airplane"
+        poisoned_rate=0.05,
+        pattern=torch.from_numpy(np.array(pattern)),
+        weight=None,
+        poisoned_transform_train_index=0,
+        poisoned_transform_test_index=0,
+        poisoned_target_transform_index=0,
+        schedule=None,
+        seed=666
+    )
