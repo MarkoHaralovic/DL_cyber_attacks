@@ -1,4 +1,5 @@
 import torch
+import torchvision
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import functional as F
 import PIL
@@ -9,8 +10,12 @@ import matplotlib.pyplot as plt
 import random
 import copy
 from torchvision.transforms import Compose
+import torchvision.transforms as transforms
 from notebooks.Data import Data
 from attacks.bad_nets.base import *
+
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 class AddTrigger:
@@ -59,7 +64,8 @@ class AddCIFAR10Trigger(AddTrigger):
 
         # Accelerated calculation
         self.res = self.weight * self.pattern
-        self.weight = 1.0 - self.weight
+        ones_tensor = torch.ones_like(self.weight) * 1.0
+        self.weight = ones_tensor - self.weight
 
     def __call__(self, img):
         img = F.pil_to_tensor(img)
@@ -204,20 +210,28 @@ if __name__ == "__main__":
     pattern = Image.open(r"../../resources/bad_nets/trigger_image.png")
     poisoned_image_class = "airplane"
 
-    train_data_path = r"../../datasets/CIFAR10/cifar-10/train/data.npy"
-    train_labels_path = r"../../datasets/CIFAR10/cifar-10/train/labels.npy"
-    test_data_path = r"../../datasets/CIFAR10/cifar-10/test/data.npy"
-    test_labels_path = r"../../datasets/CIFAR10/cifar-10/test/labels.npy"
+    transform = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    dataset = Data(train_data_path, train_labels_path, test_data_path, test_labels_path)
-    train_data, test_data = dataset.train_images, dataset.test_images
+    batch_size = 4
+    trainset_root = "../../datasets/CIFAR10/cifar-10"
+    testset_root = "../../datasets/CIFAR10/cifar-10"
+
+    trainset = torchvision.datasets.CIFAR10(root=trainset_root, train=True, download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
+
+    testset = torchvision.datasets.CIFAR10(root=testset_root, train=True, download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
+
+    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     bad_nets = BadNets(
-        train_dataset=train_data,
-        test_dataset=test_data,
+        train_dataset=trainset,
+        test_dataset=testset,
         model=None,
         loss=nn.CrossEntropyLoss(),
-        y_target=dataset.classes.index(poisoned_image_class),  # all poisoned images will be labeled as "airplane"
+        y_target=1,  # all poisoned images will be labeled as "airplane"
         poisoned_rate=0.05,
         pattern=torch.from_numpy(np.array(pattern)),
         weight=None,
