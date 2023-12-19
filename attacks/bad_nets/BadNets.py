@@ -1,182 +1,79 @@
-#!/usr/bin/python3
-
 import torch
-import torchvision
+import matplotlib.pyplot as plt
 from torchvision.transforms import functional as F
 from PIL import Image
-import numpy as np
-import torchvision.transforms as transforms
-from base import Base
-from PoisonedCIFAR10 import PoisonedCIFAR10
+from attacks.base import Base
+from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
-class AddTrigger:
-    def __init__(self):
-        self.res = None
-        self.weight = None
+class AddCIFAR10Trigger:
+    """
+    Class for adding a backdoor trigger to a CIFAR10 image.
 
-    def add_trigger(self, img):
-        """Add watermarked trigger to image.
+    Attributes:
+        pattern: a backdoor trigger pattern, torch.Tensor of shape (C, H, W) -> (1, 32, 32)
+        alpha: transparency of the trigger pattern, float32 [0, 1]
 
-        Args:
-            img (torch.Tensor): shape (C, H, W).
+    Methods:
+        __init__: initialize the backdoor trigger pattern and transparency
+        __call__: add the backdoor trigger to the image
 
-        Returns:
-            torch.Tensor: Poisoned image, shape (C, H, W).
-        """
-        return (self.weight * img + self.res).type(torch.uint8)
-
-
-class AddCIFAR10Trigger(AddTrigger):
-    """Add watermarked trigger to CIFAR10 image.
-
-    Args:
-        pattern (None | torch.Tensor): shape (3, 32, 32) or (32, 32).
-        weight (None | torch.Tensor): shape (3, 32, 32) or (32, 32).
     """
 
-    def __init__(self, pattern, weight):
-        super(AddCIFAR10Trigger, self).__init__()
-
-        if pattern is None:  # default pattern, 3x3 white square at the right corner
+    def __init__(self, pattern, alpha=1):
+        self.alpha = alpha
+        assert isinstance(pattern, Image.Image) or pattern is None, 'pattern should be a PIL image.'
+        if pattern is None:
             self.pattern = torch.zeros((1, 32, 32), dtype=torch.uint8)
-            self.pattern[0, -3:, -3:] = 255
+            self.pattern[0, -3:, -3:] = 255  # default pattern, 3x3 white square at the right corner
         else:
-            self.pattern = pattern
-            if self.pattern.dim() == 2:  # if pattern is 2D, add a new dimension, a color channel
-                self.pattern = self.pattern.unsqueeze(0)  # (32, 32) -> (1, 32, 32); (C, H, W)
-
-        if weight is None:  # default weight, 3x3 white square at the right corner, use for multiplication
-            self.weight = torch.zeros((1, 32, 32), dtype=torch.float32)
-            self.weight[0, -3:, -3:] = 1.0
-        else:
-            self.weight = weight
-            if self.weight.dim() == 2:  # if weight is 2D, add a new dimension, a color channel
-                self.weight = self.weight.unsqueeze(0)
-
-        # Accelerated calculation
-        self.res = self.weight * self.pattern
-        ones_tensor = torch.ones_like(self.weight) * 1.0
-        self.weight = ones_tensor - self.weight
+            self.pattern = F.pil_to_tensor(pattern)
+            # print(f"pattern shape: {self.pattern.shape}")
+            if self.pattern.dim() == 2:
+                self.pattern = self.pattern.unsqueeze(0)
 
     def __call__(self, img):
-        img = F.pil_to_tensor(img)
-        img = self.add_trigger(img)
-        img = Image.fromarray(img.permute(1, 2, 0).numpy())
-        return img
+        """
+        Add the backdoor trigger to the image.
+            Arguments:
+                img: PIL image
+            Returns:
+                PIL image
+        """
+        input_image = F.pil_to_tensor(img)
+        output_image = self.add_trigger(input_image)
+        return Image.fromarray(output_image.permute(1, 2, 0).numpy())
 
-class ModifyTarget:
-    def __init__(self, y_target):
-        self.y_target = y_target
-
-    def __call__(self, y_target):
-        return self.y_target
+    def add_trigger(self, img):
+        normalized_pattern = (self.pattern.float() / 255.0) * img.max()  # normalize the pattern
+        return (img.float() + normalized_pattern).clamp(0, 255).type(torch.uint8)  # add the pattern to the image
 
 
-class BadNets(Base):
-    """Construct poisoned datasets with BadNets method.
+def display_images(test_image, output_image):
+    fig, axes = plt.subplots(1, 2)
+    axes[0].imshow(test_image)
+    axes[0].set_title("Original image")
+    axes[1].imshow(output_image)
+    axes[1].set_title("Image with the backdoor trigger")
 
-    Args:
-        train_dataset (types in support_list): Benign training dataset.
-        test_dataset (types in support_list): Benign testing dataset.
-        model (torch.nn.Module): Network.
-        loss (torch.nn.Module): Loss.
-        y_target (int): N-to-1 attack target label.
-        poisoned_rate (float): Ratio of poisoned samples.
-        pattern (None | torch.Tensor): Trigger pattern, shape (C, H, W) or (H, W).
-        weight (None | torch.Tensor): Trigger pattern weight, shape (C, H, W) or (H, W).
-        poisoned_transform_train_index (int): The position index that poisoned transform will be inserted in train dataset. Default: 0.
-        poisoned_transform_test_index (int): The position index that poisoned transform will be inserted in test dataset. Default: 0.
-        poisoned_target_transform_index (int): The position that poisoned target transform will be inserted. Default: 0.
-        schedule (dict): Training or testing schedule. Default: None.
-        seed (int): Global seed for random numbers. Default: 0.
-        deterministic (bool): Sets whether PyTorch operations must use "deterministic" algorithms.
-            That is, algorithms which, given the same input, and when run on the same software and hardware,
-            always produce the same output. When enabled, operations will use deterministic algorithms when available,
-            and if only nondeterministic algorithms are available they will throw a RuntimeError when called. Default: False.
-    """
+    for ax in axes:
+        ax.axis('off')
 
-    def __init__(self,
-                 train_dataset,
-                 test_dataset,
-                 model,
-                 loss,
-                 y_target,
-                 poisoned_rate,
-                 pattern=None,
-                 weight=None,
-                 poisoned_transform_train_index=0,
-                 poisoned_transform_test_index=0,
-                 poisoned_target_transform_index=0,
-                 schedule=None,
-                 seed=0,
-                 deterministic=False):
-        assert pattern is None or (isinstance(pattern, torch.Tensor) and ((0 < pattern) & (pattern < 1)).sum() == 0), 'pattern should be None or 0-1 torch.Tensor.'
-
-        super(BadNets, self).__init__(
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            model=model,
-            loss=loss,
-            schedule=schedule,
-            seed=seed,
-            deterministic=deterministic)
-
-        self.poisoned_train_dataset = PoisonedCIFAR10(
-            train_dataset,
-            y_target,
-            poisoned_rate,
-            AddCIFAR10Trigger(pattern, weight),
-            poisoned_transform_train_index,
-            poisoned_target_transform_index)
-
-        self.poisoned_test_dataset = PoisonedCIFAR10(
-            test_dataset,
-            y_target,
-            1.0,
-            AddCIFAR10Trigger(pattern, weight),
-            poisoned_transform_test_index,
-            poisoned_target_transform_index)
+    plt.show()
 
 
 if __name__ == "__main__":
-    pattern = Image.open(r"../resources/bad_nets/trigger_image.png")
-    poisoned_image_class = "airplane"
+    square_pattern = Image.open(r"../../resources/bad_nets/trigger_image.png")
+    grid_pattern = Image.open(r"../../resources/bad_nets/trigger_image_grid.png")
+    test_image = Image.open("./kirby.png").convert("RGB")
 
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    add_square_trigger = AddCIFAR10Trigger(square_pattern)
+    output_image = add_square_trigger(test_image)
+    display_images(test_image, output_image)
 
-    batch_size = 4
-    trainset_root = "../datasets/CIFAR10/cifar-10"
-    testset_root = "../datasets/CIFAR10/cifar-10"
-
-    trainset = torchvision.datasets.CIFAR10(root=trainset_root, train=True, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
-
-    testset = torchvision.datasets.CIFAR10(root=testset_root, train=True, download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
-
-    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
-    bad_nets = BadNets(
-        train_dataset=trainset,
-        test_dataset=testset,
-        model=None,
-        loss=nn.CrossEntropyLoss(),
-        y_target=1,  # all poisoned images will be labeled as "airplane"
-        poisoned_rate=0.05,
-        pattern=torch.from_numpy(np.array(pattern)),
-        weight=None,
-        poisoned_transform_train_index=0,
-        poisoned_transform_test_index=0,
-        poisoned_target_transform_index=0,
-        schedule=None,
-        seed=666
-    )
-
-    poisoned_train_dataset, poisoned_test_dataset = bad_nets.get_poisoned_dataset()
-    # TODO: save poisoned dataset as .npy files
+    add_grid_trigger = AddCIFAR10Trigger(grid_pattern)
+    output_image = add_grid_trigger(test_image)
+    display_images(test_image, output_image)
