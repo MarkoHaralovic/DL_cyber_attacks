@@ -3,14 +3,15 @@ datasets/CIFAR10/cifar-10/train/data.npy
 datasets/CIFAR10/cifar-10/train/labels.npy
 datasets/CIFAR10/cifar-10/test/data.npy
 datasets/CIFAR10/cifar-10/test/labels.npy
-models/efficientnet_v2_s_cifar10.pth
 datasets/CIFAR10/cifar-10/cifar-10-python.tar.gz
+models/efficientnet_v2_s_cifar10.pth
 checkpoints/
 
 # Environments
 .venv/
 venv/
 .vscode/
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
