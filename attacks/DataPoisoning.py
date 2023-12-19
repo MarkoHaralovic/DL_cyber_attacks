@@ -6,7 +6,7 @@ import torchvision
 from torchvision import transforms
 
 from PIL import Image
-from attacks.bad_nets.base import Base
+from attacks.base import Base
 from PoisonedCIFAR10 import PoisonedCIFAR10
 
 class BlendCIFAR10Image:
