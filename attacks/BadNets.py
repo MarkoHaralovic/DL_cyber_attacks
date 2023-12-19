@@ -1,18 +1,13 @@
+#!/usr/bin/python3
+
 import torch
 import torchvision
-from torchvision.datasets import CIFAR10
 from torchvision.transforms import functional as F
-import PIL
 from PIL import Image
 import numpy as np
-import os
-import matplotlib.pyplot as plt
-import random
-import copy
-from torchvision.transforms import Compose
 import torchvision.transforms as transforms
-from notebooks.Data import Data
-from attacks.bad_nets.base import *
+from base import Base
+from PoisonedCIFAR10 import PoisonedCIFAR10
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -72,63 +67,6 @@ class AddCIFAR10Trigger(AddTrigger):
         img = self.add_trigger(img)
         img = Image.fromarray(img.permute(1, 2, 0).numpy())
         return img
-
-
-class PoisonedCIFAR10(CIFAR10):
-    def __init__(self,
-                 benign_dataset,
-                 y_target,
-                 poisoned_rate,
-                 pattern,
-                 weight,
-                 poisoned_transform_index,
-                 poisoned_target_transform_index):
-        super(PoisonedCIFAR10, self).__init__(
-            benign_dataset.root,
-            benign_dataset.train,
-            benign_dataset.transform,
-            benign_dataset.target_transform,
-            download=True)
-        total_num = len(benign_dataset)
-        poisoned_num = int(total_num * poisoned_rate)
-        assert poisoned_num >= 0, 'poisoned_num should greater than or equal to zero.'
-        tmp_list = list(range(total_num))
-        random.shuffle(tmp_list)
-        self.poisoned_set = frozenset(tmp_list[:poisoned_num])
-
-        # Add trigger to images
-        if self.transform is None:
-            self.poisoned_transform = Compose([])
-        else:
-            self.poisoned_transform = copy.deepcopy(self.transform)
-        self.poisoned_transform.transforms.insert(poisoned_transform_index, AddCIFAR10Trigger(pattern, weight))
-
-        # Modify labels
-        if self.target_transform is None:
-            self.poisoned_target_transform = Compose([])
-        else:
-            self.poisoned_target_transform = copy.deepcopy(self.target_transform)
-        self.poisoned_target_transform.transforms.insert(poisoned_target_transform_index, ModifyTarget(y_target))
-
-    def __getitem__(self, index):
-        img, target = self.data[index], int(self.targets[index])
-
-        # doing this so that it is consistent with all other datasets
-        # to return a PIL Image
-        img = Image.fromarray(img)
-
-        if index in self.poisoned_set:
-            img = self.poisoned_transform(img)
-            target = self.poisoned_target_transform(target)
-        else:
-            if self.transform is not None:
-                img = self.transform(img)
-
-            if self.target_transform is not None:
-                target = self.target_transform(target)
-
-        return img, target
-
 
 class ModifyTarget:
     def __init__(self, y_target):
@@ -191,8 +129,7 @@ class BadNets(Base):
             train_dataset,
             y_target,
             poisoned_rate,
-            pattern,
-            weight,
+            AddCIFAR10Trigger(pattern, weight),
             poisoned_transform_train_index,
             poisoned_target_transform_index)
 
@@ -200,14 +137,13 @@ class BadNets(Base):
             test_dataset,
             y_target,
             1.0,
-            pattern,
-            weight,
+            AddCIFAR10Trigger(pattern, weight),
             poisoned_transform_test_index,
             poisoned_target_transform_index)
 
 
 if __name__ == "__main__":
-    pattern = Image.open(r"../../resources/bad_nets/trigger_image.png")
+    pattern = Image.open(r"../resources/bad_nets/trigger_image.png")
     poisoned_image_class = "airplane"
 
     transform = transforms.Compose(
@@ -215,8 +151,8 @@ if __name__ == "__main__":
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     batch_size = 4
-    trainset_root = "../../datasets/CIFAR10/cifar-10"
-    testset_root = "../../datasets/CIFAR10/cifar-10"
+    trainset_root = "../datasets/CIFAR10/cifar-10"
+    testset_root = "../datasets/CIFAR10/cifar-10"
 
     trainset = torchvision.datasets.CIFAR10(root=trainset_root, train=True, download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)

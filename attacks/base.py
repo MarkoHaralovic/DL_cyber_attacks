@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import DatasetFolder, MNIST, CIFAR10
 
-from utils import Log
+# from utils import Log
 
 
 support_list = (
