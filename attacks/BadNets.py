@@ -180,4 +180,3 @@ if __name__ == "__main__":
 
     poisoned_train_dataset, poisoned_test_dataset = bad_nets.get_poisoned_dataset()
     # TODO: save poisoned dataset as .npy files
-
