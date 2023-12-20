@@ -32,7 +32,7 @@ def test(model, test_loader, criterion=nn.CrossEntropyLoss()):
     )
 
 
-def evaluate_model(model, data_loader, device, criterion):
+def evaluate_model(model, data_loader, device, criterion = nn.CrossEntropyLoss()):
     model.eval()
     total_loss = 0.0
     total_correct = 0

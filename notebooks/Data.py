@@ -4,7 +4,7 @@ import PIL.Image as Image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-
+import torch
 
 class Data:
     def __init__(self, train_images, train_labels, test_images, test_labels, train_transform=None, test_transform=None):
@@ -81,20 +81,34 @@ class Data:
 
         return
 
-    def reshape(self):
+    def to_tensor_permute(self, permute=False, permute_order=None, label_dtype=torch.long):
         """
-      Reshaping image dimensions ( default is (32,32,3) )
-      """
-        return
-
-    def resize(self, resized_shape):
+        Converting image to tensor representation and permute channels if needed.
+        permute_order should be a list like [0, 3, 1, 2] to indicate the new order of axes.
         """
-      Image resize, whereas each image in dataset has shape (32,32,3),
-      but works for permuted dimensions as well (3,32,32)
-      """
+        if permute and permute_order is not None:
+            self.test_images = torch.tensor(self.test_images, dtype=torch.float32).permute(*permute_order)
+            self.train_images = torch.tensor(self.train_images, dtype=torch.float32).permute(*permute_order)
+        else:
+            self.test_images = torch.tensor(self.test_images, dtype=torch.float32)
+            self.train_images = torch.tensor(self.train_images, dtype=torch.float32)
 
+        self.train_labels = torch.tensor(self.train_labels, dtype=label_dtype)
+        self.test_labels = torch.tensor(self.test_labels, dtype=label_dtype)
+
+        return self.train_images, self.train_labels, self.test_images, self.test_labels
+
+    def resize(self, resized_shape=None):
+        """
+        Image resize, whereas each image in dataset has shape (32,32,3),
+        but works for permuted dimensions as well (3,32,32)
+        """
+
+        if resized_shape is None:
+            return
         resize_transform = transforms.Resize(resized_shape, antialias=True)
-
+        
+        print(f"Resizing from shape : {self.shape} to {resized_shape}")
         if self.shape == (32, 32, 3):
             self.train_images = np.array(
                 [np.array(resize_transform(Image.fromarray((img * 255).astype('uint8')))) for img in
