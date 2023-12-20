@@ -39,11 +39,19 @@ class Data:
 
     def __getitem__(self, idx, dataset="train"):
         """
-      Generic get item function to get one image from train dataset
-      """
-        sample, label = self.train_images[idx], self.train_labels[idx]
-        if self.train_transform:
-            sample = self.train_transform(sample)
+        Generic get item function to get one image from train or test dataset.
+        """
+        if dataset == "train":
+            sample, label = self.train_images[idx], self.train_labels[idx]
+            if self.train_transform:
+                sample = self.train_transform(Image.fromarray(sample))
+        elif dataset == "test":
+            sample, label = self.test_images[idx], self.test_labels[idx]
+            if self.test_transform:
+                sample = self.test_transform(Image.fromarray(sample))
+        else:
+            raise ValueError("Invalid dataset type: %s" % dataset)
+
         return sample, label
 
     def visualize_class_images(self, class_name, n):

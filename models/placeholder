@@ -1,9 +1,0 @@
-On this website you can find EfficientNetV2-pytorch weights on CIFAR
-
-EfficientNetV2 has over ranks 17th on classification on CIFAR10 dataset.
-
-Here is link to the weights git: https://github.com/hankyul2/EfficientNetV2-pytorch/releases
-
-This DNN ranks highest among other DNN's on this dataset.
-Article about the network is here:  https://arxiv.org/pdf/2104.00298v3.pdf
-Paperswithcode webiste: https://paperswithcode.com/paper/efficientnetv2-smaller-models-and-faster

@@ -19,8 +19,6 @@ from efficient_net_functions import test,train,evaluate_model,_train,load_model
 print(torch.__version__) 
 print(torchvision.__version__) 
 
-
-
 train_images = "..\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
 train_labels = "..\\datasets\\CIFAR10\\cifar-10\\train\\labels.npy"
 test_images = "..\\datasets\\CIFAR10\\cifar-10\\test\\data.npy"
@@ -30,8 +28,6 @@ model_name = 'efficientnet_v2_s'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
-
-
 
 cifar_10_dataset= Data(train_images=train_images,train_labels=train_labels,
                      test_images=test_images,test_labels=test_labels)
