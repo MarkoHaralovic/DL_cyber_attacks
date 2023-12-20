@@ -134,18 +134,11 @@ cifar_10_dataset = Data(
 
 cifar_10_dataset.normalize()
 
+train_data, train_labels, test_data, test_labels = cifar_10_dataset.to_tensor_permute(permute=True, permute_order=[0, 3, 1, 2])
 
-test_data = torch.tensor(cifar_10_dataset.test_images, dtype=torch.float32).permute(
-    0, 3, 1, 2
-)
-test_labels = torch.tensor(cifar_10_dataset.test_labels, dtype=torch.long)
 test_dataset = TensorDataset(test_data, test_labels)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-train_data = torch.tensor(cifar_10_dataset.train_images, dtype=torch.float32).permute(
-    0, 3, 1, 2
-)
-train_labels = torch.tensor(cifar_10_dataset.train_labels, dtype=torch.long)
 train_dataset = TensorDataset(train_data, train_labels)
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)
 
