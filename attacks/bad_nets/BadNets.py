@@ -66,9 +66,10 @@ def display_images(test_image, output_image):
 
 
 if __name__ == "__main__":
-    square_pattern = Image.open(r"../../resources/bad_nets/trigger_image.png")
-    grid_pattern = Image.open(r"../../resources/bad_nets/trigger_image_grid.png")
-    test_image = Image.open("./kirby.png").convert("RGB")
+    path = "../../resources/bad_nets"
+    square_pattern = Image.open(f"{path}/trigger_image.png")
+    grid_pattern = Image.open(f"{path}/trigger_image_grid.png")
+    test_image = Image.open(f"{path}/kirby.png").convert("RGB")
 
     add_square_trigger = AddCIFAR10Trigger(square_pattern)
     output_image = add_square_trigger(test_image)
