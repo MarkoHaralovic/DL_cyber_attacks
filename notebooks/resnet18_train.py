@@ -11,12 +11,14 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import TensorDataset, DataLoader
 
 import torchvision
+import numpy as np
+import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
+from tqdm import tqdm
 
 import os
 import sys
 from datetime import datetime
-from tqdm import tqdm
 
 from Data import Data
 
@@ -62,6 +64,8 @@ def train(epoch):
         % (train_loss, 100.0 * correct / total, correct, total)
     )
 
+    return train_loss, 100.0 * correct / total
+
 
 def test(epoch):
     global best_acc
@@ -88,6 +92,7 @@ def test(epoch):
     )
 
     # Save checkpoint.
+    checkpoints_dir = os.path.join(os.path.curdir, "checkpoints")
     acc = 100.0 * correct / total
     if acc > best_acc:
         print("Saving..")
@@ -96,15 +101,61 @@ def test(epoch):
             "acc": acc,
             "epoch": epoch,
         }
-        if not os.path.isdir("checkpoint"):
-            os.mkdir("checkpoint")
+
+        if not os.path.isdir(checkpoints_dir):
+            os.mkdir(checkpoints_dir)
+
         torch.save(
             state,
-            os.path.join(
-                os.path.curdir, "checkpoints", f"resnet18_ckpt_{TIMESTAMP}.pth"
-            ),
+            os.path.join(checkpoints_dir, f"resnet18_ckpt_{TIMESTAMP}.pth"),
         )
         best_acc = acc
+
+    return test_loss, 100.0 * correct / total
+
+
+def plot_metrics(train_loss, train_acc, val_loss, val_acc):
+    epochs = np.arange(NUM_EPOCHS)
+
+    if max(val_loss) - min(train_loss) < 50:
+        fig, (loss_ax, acc_ax) = plt.subplots(
+            1, 2, figsize=(12, 5), layout="constrained"
+        )
+        loss_ax.plot(epochs, train_loss, label="train")
+        loss_ax.plot(epochs, val_loss, label="val")
+        loss_ax.set(title="Loss")
+
+        axes = [loss_ax, acc_ax]
+    else:
+        # Plot train and validation loss separately
+        fig, ((train_loss_ax, acc_ax), (val_loss_ax, empty)) = plt.subplots(
+            2, 2, figsize=(12, 10), layout="constrained"
+        )
+        empty.set(visible=False)
+
+        train_loss_ax.plot(epochs, train_loss)
+        val_loss_ax.plot(epochs, val_loss)
+        train_loss_ax.set(title="Train loss")
+        val_loss_ax.set(title="Val loss")
+
+        axes = [train_loss_ax, acc_ax, val_loss_ax]
+
+    acc_ax.plot(epochs, train_acc, label="train")
+    acc_ax.plot(epochs, val_acc, label="val")
+    acc_ax.set_title("Accuracy")
+    acc_ax.legend()
+
+    for ax in axes:
+        ax.grid(True, linestyle=":")
+        ax.set_xlabel("Epoch")
+
+    fig.suptitle(
+        f"Resnet18 - {EXP_NAME}\n[LR={LR}, WD={WD}, M={MOMENTUM}, BS={BATCH_SIZE}]",
+        fontsize=14,
+    )
+    plt.savefig(
+        os.path.join(os.path.curdir, "checkpoints", f"resnet18_metrics_{TIMESTAMP}.svg")
+    )
 
 
 if __name__ == "__main__":
@@ -176,7 +227,22 @@ if __name__ == "__main__":
 
     classes = cifar_10_dataset.classes
 
+    # Collect metrics
+    train_loss_data = np.zeros(NUM_EPOCHS)
+    train_acc_data = np.zeros(NUM_EPOCHS)
+    val_loss_data = np.zeros(NUM_EPOCHS)
+    val_acc_data = np.zeros(NUM_EPOCHS)
+
+    # Train
     for epoch in range(NUM_EPOCHS):
-        train(epoch)
-        test(epoch)
+        train_loss, train_acc = train(epoch)
+        train_loss_data[epoch] = train_loss
+        train_acc_data[epoch] = train_acc
+
+        val_loss, val_acc = test(epoch)
+        val_loss_data[epoch] = val_loss
+        val_acc_data[epoch] = val_acc
+
         scheduler.step()
+
+    plot_metrics(train_loss_data, train_acc_data, val_loss_data, val_acc_data)
