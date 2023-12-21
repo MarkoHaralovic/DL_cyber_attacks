@@ -9,17 +9,19 @@ import torchvision
 import torchvision.transforms as transforms
 
 import os
+import sys
 import argparse
 
 from models import *
 from utils import progress_bar
 
-train_images = "..\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
-train_labels = "..\\datasets\\CIFAR10\\cifar-10\\train\\labels.npy"
-test_images = "..\\datasets\\CIFAR10\\cifar-10\\test\\data.npy"
-test_labels = "..\\datasets\\CIFAR10\\cifar-10\\test\\labels.npy"
-weight_path = "..\\models\\efficientnet_v2_s_cifar10.pth"
-model_name = 'efficientnet_v2_s'
+datasets_folder = os.path.join(os.path.curdir, 'datasets', 'CIFAR10', 'cifar-10')
+train_images = os.path.join(datasets_folder, 'train', 'data.npy') #".\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
+train_labels = os.path.join(datasets_folder, 'train', 'labels.npy') #".\\datasets\\CIFAR10\\cifar-10\\train\\labels.npy")
+test_images = os.path.join(datasets_folder, 'test', 'data.npy') #".\\datasets\\CIFAR10\\cifar-10\\test\\data.npy"
+test_labels = os.path.join(datasets_folder, 'test', 'labels.npy') # ".\\datasets\\CIFAR10\\cifar-10\\test\\labels.npy"
+weight_path = os.path.join('models', 'efficientnet_v2_s_cifar10.pth') # ".\\models\\efficientnet_v2_s_cifar10.pth"
+model_name = 'ResNet18'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
