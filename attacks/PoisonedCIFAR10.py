@@ -5,6 +5,7 @@ from torchvision.transforms import Compose
 from PIL import Image
 import random
 import copy
+import numpy as np
 
 class PoisonedCIFAR10(CIFAR10):
     def __init__(self,
@@ -30,12 +31,12 @@ class PoisonedCIFAR10(CIFAR10):
             benign_dataset.transform,
             benign_dataset.target_transform,
             download=True)
-        total_num = len(benign_dataset)
-        poisoned_num = int(total_num * poisoned_rate)
-        assert poisoned_num >= 0, 'poisoned_num should greater than or equal to zero.'
-        tmp_list = list(range(total_num))
+        self.total_num = len(benign_dataset)
+        self.poisoned_num = int(self.total_num * poisoned_rate)
+        assert self.poisoned_num >= 0, 'poisoned_num should greater than or equal to zero.'
+        tmp_list = list(range(self.total_num))
         random.shuffle(tmp_list)
-        self.poisoned_set = frozenset(tmp_list[:poisoned_num])
+        self.poisoned_set = frozenset(tmp_list[:self.poisoned_num])
 
         # Add trigger to images
         if self.transform is None:
@@ -49,7 +50,7 @@ class PoisonedCIFAR10(CIFAR10):
             self.poisoned_target_transform = Compose([])
         else:
             self.poisoned_target_transform = copy.deepcopy(self.target_transform)
-        self.poisoned_target_transform.transforms.insert(poisoned_target_transform_index, ModifyTarget(y_target))
+        self.poisoned_target_transform.transforms.insert(poisoned_target_transform_index, lambda: y_target)
 
     def __getitem__(self, index):
         img, target = self.data[index], int(self.targets[index])
@@ -69,3 +70,22 @@ class PoisonedCIFAR10(CIFAR10):
                 target = self.target_transform(target)
 
         return img, target
+
+    def save(self, filepath):
+        out = []
+
+        for index in range(self.total_num):
+            curr_img, target = self.data[index], int(self.targets[index])
+
+            curr_img = Image.fromarray(curr_img)
+            if index in self.poisoned_set:
+                curr_img = self.poisoned_transform(curr_img)
+                target = self.poisoned_target_transform(target)
+            else:
+                pass
+
+            img_np = np.array(curr_img.getdata()).reshape(curr_img.size[0], curr_img.size[1], 3)
+            out.append(img_np)
+
+        np.save(filepath, out)
+        return
