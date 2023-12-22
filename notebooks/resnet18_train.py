@@ -31,7 +31,7 @@ from resnet18 import ResNet18
 LR = 0.1
 WD = 5e-4
 MOMENTUM = 0.9
-NUM_EPOCHS = 50
+NUM_EPOCHS = 1
 
 BATCH_SIZE = 256 if torch.cuda.is_available() else 64
 NUM_WORKERS = int(os.cpu_count() / 2)
@@ -128,7 +128,7 @@ def test(epoch):
     return test_loss, 100.0 * correct / total, testing_time
 
 
-def plot_metrics(train_loss, train_acc, val_loss, val_acc):
+def plot_metrics(train_loss, train_acc, val_loss, val_acc, total_training_time, total_testing_time):
     epochs = np.arange(NUM_EPOCHS)
 
     if max(val_loss) - min(train_loss) < 50:
@@ -163,10 +163,15 @@ def plot_metrics(train_loss, train_acc, val_loss, val_acc):
         ax.grid(True, linestyle=":")
         ax.set_xlabel("Epoch")
 
+    formatted_training_time = format_time(total_training_time)
+    formatted_testing_time = format_time(total_testing_time)
+    
     fig.suptitle(
         f"Resnet18 - {EXP_NAME}\n[LR={LR}, WD={WD}, M={MOMENTUM}, BS={BATCH_SIZE}]",
         fontsize=14,
     )
+    plt.figtext(0.5, 0.01, f"Total Training Time: {formatted_training_time} | Total Testing Time: {formatted_testing_time}", ha="center", fontsize=10)
+    
     plt.savefig(
         os.path.join(os.path.curdir, "checkpoints", f"resnet18_metrics_{TIMESTAMP}.svg")
     )
