@@ -39,7 +39,7 @@ class Data:
 
     def __getitem__(self, idx, dataset="train"):
         """
-        Generic get item function to get one image from train or test dataset.
+         Get one image from the train or test dataset.
         """
         if dataset == "train":
             sample, label = self.train_images[idx], self.train_labels[idx]
@@ -56,8 +56,8 @@ class Data:
 
     def visualize_class_images(self, class_name, n):
         """
-    Visualize n instances of a specific class of the dataset.
-    """
+        Visualize n instances of a specific class of the dataset.
+        """
 
         class_idx = self.classes.index(class_name)
 
@@ -77,11 +77,20 @@ class Data:
             axes[i].axis('off')
 
         plt.show()
-
+    
+    def images_to_tensor(self, label_dtype=torch.long):
+        """
+        Convert all images and labels in train and test datasets to tensors.
+        """
+        self.test_images = torch.tensor(self.test_images, dtype=torch.float32)
+        self.train_images = torch.tensor(self.train_images, dtype=torch.float32)
+        self.train_labels = torch.tensor(self.train_labels, dtype=label_dtype)
+        self.test_labels = torch.tensor(self.test_labels, dtype=label_dtype)
+    
     def normalize(self):
         """
-      Data normalization
-      """
+        Normalize data.
+        """
         self.train_images = self.train_images.astype("float32")
         self.train_images = self.train_images / 255.0
         self.test_images = self.test_images.astype("float32")
@@ -89,20 +98,13 @@ class Data:
 
         return
 
-    def to_tensor_permute(self, permute=False, permute_order=None, label_dtype=torch.long):
+    def permute_img_channels(self, permute_order=None, label_dtype=torch.long):
         """
-        Converting image to tensor representation and permute channels if needed.
-        permute_order should be a list like [0, 3, 1, 2] to indicate the new order of axes.
+        Permute image channels, permute_order should be a list like [0, 3, 1, 2] to indicate the new order of axes.
         """
-        if permute and permute_order is not None:
-            self.test_images = torch.tensor(self.test_images, dtype=torch.float32).permute(*permute_order)
-            self.train_images = torch.tensor(self.train_images, dtype=torch.float32).permute(*permute_order)
-        else:
-            self.test_images = torch.tensor(self.test_images, dtype=torch.float32)
-            self.train_images = torch.tensor(self.train_images, dtype=torch.float32)
-
-        self.train_labels = torch.tensor(self.train_labels, dtype=label_dtype)
-        self.test_labels = torch.tensor(self.test_labels, dtype=label_dtype)
+        if  permute_order is not None:
+            self.test_images = self.test_images.permute(*permute_order)
+            self.train_images = self.train_images.permute(*permute_order)
 
         return self.train_images, self.train_labels, self.test_images, self.test_labels
 
@@ -137,9 +139,9 @@ class Data:
 
     def one_hot_encoding(self):
         """
-      One-hot encoding
-      Represent each integer value as a binary vector that is all zeros except the index of the integer
-      """
+         One-hot encoding
+        Represent each integer value as a binary vector that is all zeros except the index of the integer
+        """
         if self.train_images:
             self.train_hot = np_utils.np_utils.to_categorical(self.train_images)
         if self.test_images:
@@ -151,8 +153,8 @@ class Data:
 
     def mean_std(self, dataset):
         """
-      Calculates mean and standard deviation across each channel
-      """
+        Calculate mean and standard deviation.
+        """
         if dataset == "train":
             mean_r = self.train_images[:, :, :, 0].mean()
             mean_g = self.train_images[:, :, :, 1].mean()
@@ -184,9 +186,10 @@ class Data:
 
     def create_valid_images(self, ratio=0.25):
         """"
-      Ratio is percent of train imaes that will be used as validation dataset.
-      Default value is 25%  (sckit learn documentation)
-      """
+        Show one image per class.
+        Ratio is percent of train images that will be used as validation dataset.
+        Default value is 25%  (sckit learn documentation)
+        """
         train_images, valid_images, train_labels, valid_labels = train_test_split(self.train_images, self.train_labels,
                                                                                   test_size=0.25)
         self.train_images = train_images
@@ -198,9 +201,8 @@ class Data:
 
     def show_images(self):
         """
-      Vizualizing one image per class 
-      
-      """
+        Vizualizing one image per class 
+        """
         num_train, img_channels, img_rows, img_cols = self.train_images.shape
         num_classes = len(np.unique(self.classes))
         fig = plt.figure(figsize=(10, 3))

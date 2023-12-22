@@ -17,6 +17,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 import sys
+import time
 
 sys.path.append("../../models")
 from efficient_net_functions import load_model, _train, test, evaluate_model, save_model
@@ -156,4 +157,11 @@ fineTuning.unfreeze_model(20)
 optimizer_ft = optim.Adam(
     filter(lambda p: p.requires_grad, fineTuning.model.parameters()), lr=1e-5
 )
+
+start_time = time.time()
+
 fineTuning.fit_model(4, optimizer_ft, train_loader, test_loader, criterion)
+
+end_time = time.time()  
+training_time = end_time - start_time 
+print(f"Training Time for Epoch {epoch}: {training_time} seconds")

@@ -1,5 +1,5 @@
 """
-Train CIFAR10 with PyTorch.
+Train CIFAR10 with PyTorch using Resnet18 architecture model.
 
 Run from the base of the project.
 """
@@ -19,8 +19,10 @@ from tqdm import tqdm
 import os
 import sys
 from datetime import datetime
+import time
 
 from Data import Data
+from auxiliary import format_time
 
 sys.path.append("models")
 from resnet18 import ResNet18
@@ -31,8 +33,8 @@ WD = 5e-4
 MOMENTUM = 0.9
 NUM_EPOCHS = 50
 
-BATCH_SIZE = 256
-NUM_WORKERS = 0
+BATCH_SIZE = 256 if torch.cuda.is_available() else 64
+NUM_WORKERS = int(os.cpu_count() / 2)
 
 EXP_NAME = "test"
 TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
@@ -40,6 +42,8 @@ TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 
 # Training
 def train(epoch):
+    start_time = time.time()
+    
     net.train()
     train_loss = 0
     correct = 0
@@ -63,11 +67,17 @@ def train(epoch):
         "Loss: %.3f | Acc: %.3f%% (%d/%d)"
         % (train_loss, 100.0 * correct / total, correct, total)
     )
+    
+    end_time = time.time()  
+    training_time = end_time - start_time 
 
-    return train_loss, 100.0 * correct / total
+    print(f"Training Time for Epoch {epoch}: {training_time} seconds")
+    return train_loss, 100.0 * correct / total, training_time
 
 
 def test(epoch):
+    start_time = time.time()
+    
     global best_acc
     net.eval()
     test_loss = 0
@@ -110,8 +120,12 @@ def test(epoch):
             os.path.join(checkpoints_dir, f"resnet18_ckpt_{TIMESTAMP}.pth"),
         )
         best_acc = acc
-
-    return test_loss, 100.0 * correct / total
+    
+    end_time = time.time()  
+    testing_time = end_time - start_time
+    print(f"Testing Time for Epoch {epoch}: {testing_time} seconds")
+    
+    return test_loss, 100.0 * correct / total, testing_time
 
 
 def plot_metrics(train_loss, train_acc, val_loss, val_acc):
@@ -233,16 +247,24 @@ if __name__ == "__main__":
     val_loss_data = np.zeros(NUM_EPOCHS)
     val_acc_data = np.zeros(NUM_EPOCHS)
 
+    total_training_time = 0
+    total_testing_time = 0  
+    
     # Train
     for epoch in range(NUM_EPOCHS):
-        train_loss, train_acc = train(epoch)
+        train_loss, train_acc, training_time = train(epoch)
         train_loss_data[epoch] = train_loss
         train_acc_data[epoch] = train_acc
+        total_training_time += training_time
 
-        val_loss, val_acc = test(epoch)
+        val_loss, val_acc, testing_time = test(epoch)
         val_loss_data[epoch] = val_loss
         val_acc_data[epoch] = val_acc
+        total_testing_time += testing_time
 
         scheduler.step()
 
+    print(f"Total Training Time: {format_time(total_training_time)}")
+    print(f"Total Testing Time: {format_time(total_testing_time)}") 
+    
     plot_metrics(train_loss_data, train_acc_data, val_loss_data, val_acc_data)
