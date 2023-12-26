@@ -1,11 +1,14 @@
 import torch
 import matplotlib.pyplot as plt
+import torchvision
 from torchvision.transforms import functional as F
+from torchvision import transforms
 from PIL import Image
 from attacks.base import Base
 from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
 
 import ssl
+
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
@@ -52,6 +55,7 @@ class AddCIFAR10Trigger:
         return (img.float() + normalized_pattern).clamp(0, 255).type(torch.uint8)  # add the pattern to the image
 
 
+# UTILITY FUNCTIONS
 def display_images(test_image, output_image):
     fig, axes = plt.subplots(1, 2)
     axes[0].imshow(test_image)
@@ -65,16 +69,50 @@ def display_images(test_image, output_image):
     plt.show()
 
 
+def test_adding_trigger(test_image, add_square_trigger, add_grid_trigger):
+    output_image = add_square_trigger(test_image)
+    display_images(test_image, output_image)
+
+    output_image = add_grid_trigger(test_image)
+    display_images(test_image, output_image)
+
+
+def load_CIFAR10_data(benign_root, batch_size, transform):
+    trainset = torchvision.datasets.CIFAR10(root=benign_root, train=True, download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
+
+    testset = torchvision.datasets.CIFAR10(root=benign_root, train=True, download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
+
+    return trainset, trainloader, testset, testloader
+
+
 if __name__ == "__main__":
     path = "../../resources/bad_nets"
     square_pattern = Image.open(f"{path}/trigger_image.png")
     grid_pattern = Image.open(f"{path}/trigger_image_grid.png")
     test_image = Image.open(f"{path}/kirby.png").convert("RGB")
 
-    add_square_trigger = AddCIFAR10Trigger(square_pattern)
-    output_image = add_square_trigger(test_image)
-    display_images(test_image, output_image)
+    poisoned_image_class = "airplane"
 
+    transform = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    batch_size = 4
+    benign_root = "../../datasets/CIFAR10/cifar-10"
+
+    trainset, trainloader, testset, testloader = load_CIFAR10_data(benign_root, batch_size, transform)
+
+    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+    add_square_trigger = AddCIFAR10Trigger(square_pattern)
     add_grid_trigger = AddCIFAR10Trigger(grid_pattern)
-    output_image = add_grid_trigger(test_image)
-    display_images(test_image, output_image)
+
+    test_adding_trigger(test_image, add_square_trigger, add_grid_trigger)
+
+    poisoned_dataset = PoisonedCIFAR10(benign_dataset=trainset,
+                                       y_target=...,
+                                       poisoned_rate=0.5,
+                                       poisoning_strategy=add_square_trigger,
+                                       poisoned_transform_index=...,
+                                       poisoned_target_transform_index=...)
