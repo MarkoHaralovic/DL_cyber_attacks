@@ -78,8 +78,6 @@ if __name__ == '__main__':
                                         y_target=1, # airplane
                                         poisoned_rate=0.2,
                                         poisoning_strategy=BlendCIFAR10Image(pattern),
-                                        poisoned_transform_index=2,
-                                        poisoned_target_transform_index=1
                                         )
 
     # TODO: save poisoned dataset as .npy files
