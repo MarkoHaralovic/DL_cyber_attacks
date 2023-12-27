@@ -6,6 +6,7 @@ from torchvision import transforms
 from PIL import Image
 from attacks.base import Base
 from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
+import random
 
 import ssl
 
@@ -108,11 +109,21 @@ if __name__ == "__main__":
     add_square_trigger = AddCIFAR10Trigger(square_pattern)
     add_grid_trigger = AddCIFAR10Trigger(grid_pattern)
 
-    test_adding_trigger(test_image, add_square_trigger, add_grid_trigger)
+    # uncomment to test adding a trigger
+    # test_adding_trigger(test_image, add_square_trigger, add_grid_trigger)
 
     poisoned_dataset = PoisonedCIFAR10(benign_dataset=trainset,
                                        y_target=...,
                                        poisoned_rate=0.5,
-                                       poisoning_strategy=add_square_trigger,
-                                       poisoned_transform_index=...,
-                                       poisoned_target_transform_index=...)
+                                       poisoning_strategy=add_square_trigger)
+
+    # uncomment to show 10 sample images
+    ################################
+    # for _ in range(10):
+    #     index = random.choice(list(poisoned_dataset.poisoned_indices))
+    #
+    #     img, target = poisoned_dataset[index]
+    #     plt.imshow(img)
+    #     plt.title(target)
+    #     plt.show()
+    ################################
