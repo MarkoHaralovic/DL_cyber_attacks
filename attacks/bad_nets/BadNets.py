@@ -94,6 +94,7 @@ if __name__ == "__main__":
     grid_pattern = Image.open(f"{path}/trigger_image_grid.png")
     test_image = Image.open(f"{path}/kirby.png").convert("RGB")
 
+    classes = ("airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck")
     poisoned_image_class = "airplane"
 
     transform = transforms.Compose(
@@ -103,8 +104,6 @@ if __name__ == "__main__":
     benign_root = "../../datasets/CIFAR10/cifar-10"
 
     trainset, trainloader, testset, testloader = load_CIFAR10_data(benign_root, batch_size, transform)
-
-    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     add_square_trigger = AddCIFAR10Trigger(square_pattern)
     add_grid_trigger = AddCIFAR10Trigger(grid_pattern)
@@ -119,11 +118,16 @@ if __name__ == "__main__":
 
     # uncomment to show 10 sample images
     ################################
-    for _ in range(10):
-        index = random.choice(list(poisoned_dataset.poisoned_indices))
-
-        img, target = poisoned_dataset[index]
-        plt.imshow(img)
-        plt.title(f"original class: {classes[target]}, new class: {poisoned_image_class}")
-        plt.show()
+    # for _ in range(10):
+    #     index = random.randint(0, poisoned_dataset.total_num - 1)  # all data
+    #     index = random.choice(list(poisoned_dataset.poisoned_indices))  # poisoned data only
+    #
+    #     img, target = poisoned_dataset[index]
+    #     plt.imshow(img)
+    #     plt.title(f"original class: {classes[target]}, new class: {poisoned_image_class}")
+    #     plt.show()
+    ################################
+    # uncomment to save poisoned model (warning: cpu/ram intensive!)
+    ################################
+    # poisoned_dataset.save("../../datasets/CIFAR10/cifar-10/bad_nets/train")
     ################################
