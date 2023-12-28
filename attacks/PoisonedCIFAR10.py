@@ -66,7 +66,7 @@ class PoisonedCIFAR10(CIFAR10):
 
     def save(self, filepath):
         """
-       Arguments:
+        Arguments:
             filepath: String where the data should be saved (three files are created: data.npy, labels.npy and log.csv)
         """
 
