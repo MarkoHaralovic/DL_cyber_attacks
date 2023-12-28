@@ -1,3 +1,5 @@
+import os
+
 import torch
 import matplotlib.pyplot as plt
 import torchvision
@@ -113,7 +115,7 @@ if __name__ == "__main__":
 
     poisoned_dataset = PoisonedCIFAR10(benign_dataset=trainset,
                                        y_target=0,  # airplane
-                                       poisoned_rate=0.5,
+                                       poisoned_rate=0.05,
                                        poisoning_strategy=add_square_trigger)
 
     # uncomment to show 10 sample images
