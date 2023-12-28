@@ -75,7 +75,7 @@ class PoisonedCIFAR10(CIFAR10):
             os.makedirs(filepath + percentage)
 
         data_file = filepath + percentage + "/data.npy"
-        target_file = filepath + percentage + "/targets.npy"
+        target_file = filepath + percentage + "/labels.npy"
         csv_file = open(filepath + percentage + "/log.csv", 'w', newline='')
         csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['index', 'old label', 'new label'])
