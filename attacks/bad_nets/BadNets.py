@@ -113,17 +113,17 @@ if __name__ == "__main__":
     # test_adding_trigger(test_image, add_square_trigger, add_grid_trigger)
 
     poisoned_dataset = PoisonedCIFAR10(benign_dataset=trainset,
-                                       y_target=...,
+                                       y_target=0,  # airplane
                                        poisoned_rate=0.5,
                                        poisoning_strategy=add_square_trigger)
 
     # uncomment to show 10 sample images
     ################################
-    # for _ in range(10):
-    #     index = random.choice(list(poisoned_dataset.poisoned_indices))
-    #
-    #     img, target = poisoned_dataset[index]
-    #     plt.imshow(img)
-    #     plt.title(target)
-    #     plt.show()
+    for _ in range(10):
+        index = random.choice(list(poisoned_dataset.poisoned_indices))
+
+        img, target = poisoned_dataset[index]
+        plt.imshow(img)
+        plt.title(f"original class: {classes[target]}, new class: {poisoned_image_class}")
+        plt.show()
     ################################
