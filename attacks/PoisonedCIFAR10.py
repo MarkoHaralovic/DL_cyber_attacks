@@ -6,10 +6,12 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import csv
+
 
 class PoisonedCIFAR10(CIFAR10):
     def __init__(self,
-                 benign_dataset : CIFAR10,
+                 benign_dataset: CIFAR10,
                  y_target,
                  poisoned_rate,
                  poisoning_strategy):
@@ -25,6 +27,18 @@ class PoisonedCIFAR10(CIFAR10):
             benign_dataset.root,
             benign_dataset.train,
             download=True)
+        self.classes = [
+            "airplane",
+            "automobile",
+            "bird",
+            "cat",
+            "deer",
+            "dog",
+            "frog",
+            "horse",
+            "ship",
+            "truck"
+        ]
         self.y_target = y_target
         self.poisoning_strategy = poisoning_strategy
 
@@ -52,34 +66,40 @@ class PoisonedCIFAR10(CIFAR10):
 
     def save(self, filepath):
         """
-        args:
-            filepath -> the path where the data gets saved
-                     -> the data will get saved in two files: f"{filepath}_images.npy" and f"{filepath}_targets.npy"
+       Arguments:
+            filepath: String where the data should be saved (three files are created: data.npy, labels.npy and log.csv)
         """
-        out_img = []
-        out_target = []
 
-        img_file = filepath + '_images.npy'
-        target_file = filepath + '_targets.npy'
+        data_file = filepath + "/data.npy"
+        target_file = filepath + "/targets.npy"
+        csv_file = open(filepath + "/log.csv", 'w', newline='')
+        csv_writer = csv.writer(csv_file, delimiter=',')
+        csv_writer.writerow(['index', 'old label', 'new label'])
 
-        for index in range(self.total_num):
-            curr_img, target = self.data[index], int(self.targets[index])
+        output_images = np.empty((self.total_num, 32, 32, 3), dtype="uint8")
+        output_labels = np.empty(self.total_num, dtype="uint8")
 
-            targets = [target] # capture old target
-            curr_img = Image.fromarray(curr_img)
-            if index in self.poisoned_indices:
-                curr_img = self.poisoning_strategy(curr_img)
-                target = self.y_target
+        for i in range(self.total_num):
+            img, label = Image.fromarray(self.data[i]), int(self.targets[i])
 
-            img_np = np.array(curr_img.getdata()).reshape(curr_img.size[0], curr_img.size[1], 3)
-            targets.append(target) # capture new target
+            if i in self.poisoned_indices:
+                img = self.poisoning_strategy(img)
+                new_label = self.y_target
+                self.__write_in_csv(csv_writer, i, label, new_label)
 
-            out_img.append(img_np)
-            out_target.append(np.array(targets))
+            output_images[i] = np.array(img.getdata()).reshape(img.size[0], img.size[1], 3)
+            output_labels[i] = new_label if i in self.poisoned_indices else label
 
-        np.save(img_file, out_img)
-        np.save(target_file, out_target)
+        np.save(data_file, output_images)
+        np.save(target_file, output_labels)
+
         return
+
+    def __write_in_csv(self, csv_writer, index, old_label, new_label):
+        csv_writer.writerow(
+            [index, f"{self.classes[old_label]} ({old_label})", f"{self.classes[new_label]} ({new_label})"]
+        )
+
 
 if __name__ == '__main__':
     from data_poisoning.DataPoisoning import BlendCIFAR10Image
