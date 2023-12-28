@@ -131,5 +131,5 @@ if __name__ == "__main__":
     ################################
     # uncomment to save poisoned model (warning: cpu/ram intensive!)
     ################################
-    # poisoned_dataset.save("../../datasets/CIFAR10/cifar-10/bad_nets/train")
+    poisoned_dataset.save("../../datasets/CIFAR10/cifar-10/bad_nets/train")
     ################################
