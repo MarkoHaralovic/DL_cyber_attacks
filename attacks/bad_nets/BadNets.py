@@ -6,7 +6,6 @@ import torchvision
 from torchvision.transforms import functional as F
 from torchvision import transforms
 from PIL import Image
-from attacks.base import Base
 from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
 import random
 
