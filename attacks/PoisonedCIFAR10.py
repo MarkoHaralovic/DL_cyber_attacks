@@ -69,7 +69,6 @@ class PoisonedCIFAR10(CIFAR10):
         Arguments:
             filepath: String where the data should be saved (three files are created: data.npy, labels.npy and log.csv)
         """
-
         data_file = filepath + "/data.npy"
         target_file = filepath + "/targets.npy"
         csv_file = open(filepath + "/log.csv", 'w', newline='')
