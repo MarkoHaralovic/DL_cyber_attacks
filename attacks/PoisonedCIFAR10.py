@@ -41,9 +41,10 @@ class PoisonedCIFAR10(CIFAR10):
         ]
         self.y_target = y_target
         self.poisoning_strategy = poisoning_strategy
+        self.poisoned_rate = poisoned_rate
 
         self.total_num = len(benign_dataset)
-        self.poisoned_num = int(self.total_num * poisoned_rate)
+        self.poisoned_num = int(self.total_num * self.poisoned_rate)
         assert self.poisoned_num >= 0, 'poisoned_num should greater than or equal to zero.'
         tmp_list = list(range(self.total_num))
         random.shuffle(tmp_list)
@@ -69,9 +70,13 @@ class PoisonedCIFAR10(CIFAR10):
         Arguments:
             filepath: String where the data should be saved (three files are created: data.npy, labels.npy and log.csv)
         """
-        data_file = filepath + "/data.npy"
-        target_file = filepath + "/targets.npy"
-        csv_file = open(filepath + "/log.csv", 'w', newline='')
+        percentage = f"/{int(self.poisoned_rate * 100)}_percent"
+        if not os.path.exists(filepath + percentage):
+            os.makedirs(filepath + percentage)
+
+        data_file = filepath + percentage + "/data.npy"
+        target_file = filepath + percentage + "/targets.npy"
+        csv_file = open(filepath + percentage + "/log.csv", 'w', newline='')
         csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['index', 'old label', 'new label'])
 
