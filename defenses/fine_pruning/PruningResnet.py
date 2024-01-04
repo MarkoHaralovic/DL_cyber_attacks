@@ -1,11 +1,12 @@
 import copy
 import csv
 import os
+import sys
 import torch
+from datetime import datetime
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision import transforms
 from tqdm import tqdm
-import sys
 
 sys.path.append(
     "../../notebooks"
@@ -19,13 +20,15 @@ from resnet18 import ResNet18
 CSV_DIR = os.path.join("..", "..", "csv_records")
 CSV_PRUNING_DIR = os.path.join(CSV_DIR, "pruning")
 DATASETS_DIR = os.path.join("..", "..", "datasets")
-CIFAR_DIR = os.path.join(DATASETS_DIR, "CIFAR10", "cifar-10")
+# CIFAR_DIR = os.path.join(DATASETS_DIR, "CIFAR10")
+CIFAR_DIR = os.path.join(DATASETS_DIR, "data_poisoning_1")
 
 # https://ferhr-my.sharepoint.com/:u:/g/personal/ds54097_fer_hr/EYbZspxkaE9NmVQnMnuX818BPZZcWp2L613XBfoRvfeAmQ?e=ntTYzw
 WEIGHT_PATH = os.path.join("..", "..", "checkpoints", "resnet18_ckpt_1221_1901.pth")
 
 # Experiment parameters
 EXP_NAME = "resnet"
+POISONED_RATE = "5_percent"
 
 PRUNING_RATES = [i / 10 for i in range(11)]
 LAYER_KEYS = [
@@ -39,10 +42,12 @@ TRAIN_SIZE_LIMIT = 50000
 TEST_SIZE_LIMIT = 10000
 BATCH_SIZE = 128
 NUM_WORKERS = 1
+TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 
 
-def evaluate_model(model, data_loader, device):
-    """Efficient Net model evaluation
+def evaluate_model(model, data_loader, device, transform):
+    """
+    Calculate model accuracy on given dataset
 
     Args:
         model (torch.nn.Module): The neural network model to be evaluated.
@@ -50,6 +55,7 @@ def evaluate_model(model, data_loader, device):
                                   The dataset should yield pairs of images and their corresponding labels.
         device (str): The device on which the model and data are loaded for evaluation.
                       Typically 'cuda' for GPU or 'cpu' for CPU.
+        transform: Transforms to be applied during evaluation.
 
     Returns:
         float: The accuracy of the model on the provided dataset, calculated as the percentage of correctly predicted samples.
@@ -62,7 +68,7 @@ def evaluate_model(model, data_loader, device):
 
     with torch.no_grad():
         for images, labels in tqdm(data_loader, desc="Evaulating model"):
-            images, labels = images.to(device), labels.to(device)
+            images, labels = transform(images.to(device)), labels.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
@@ -124,34 +130,24 @@ def prune_layer(model, layer_to_prune, layer_weight_key, prune_rate):
 if __name__ == "__main__":
     # Load dataset
     print("Loading data...")
-    train_images = os.path.join(CIFAR_DIR, "train", "data.npy")
-    train_labels = os.path.join(CIFAR_DIR, "train", "labels.npy")
-    test_images = os.path.join(CIFAR_DIR, "test", "data.npy")
-    test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
+    train_images = os.path.join(CIFAR_DIR, "train", POISONED_RATE, "data.npy")
+    train_labels = os.path.join(CIFAR_DIR, "train", POISONED_RATE, "labels.npy")
+    test_images = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "data.npy")
+    test_labels = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "labels.npy")
+    log_file = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "log.csv")
 
-    """
-    Greške:
-    (A) train_transform primjenjuje se na test dataset umjesto test_transforma
-    (B) model treniran s ovim transformacijama daje dobre rezultate samo ako se iste transformacije koriste pri evaluaciji
-
-    (A) bi se moglo rješiti td transformacije premjestimo iz Data objekta u TensorDataset objekt
-    (B) se ne bi trebao događati (valjda?), ja mislin da je RandomCrop s paddingom problematičan (svakako su slike 32x32, nema ih smisla croppat) => pripazit kod sljedećeg treninga
-    """
     cifar_10_dataset = Data(
         train_images=train_images,
         train_labels=train_labels,
         test_images=test_images,
         test_labels=test_labels,
-        train_transform=transforms.Compose(
-            [
-                transforms.RandomCrop(32, padding=4),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
-                ),
-            ]
-        ),
+    )
+
+    transform_test = transforms.Compose(
+        [
+            # transforms.ToTensor(), # only needed when adding transforms directly to Data
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ]
     )
 
     # Train
@@ -189,6 +185,30 @@ if __name__ == "__main__":
         shuffle=False,
     )
 
+    # Isolated poisoned
+    with open(log_file) as f:
+        reader = csv.reader(f)
+        header = next(iter(reader))
+
+        backdoored_indices = [int(row[0]) for row in reader]
+
+    backdoored_data = torch.tensor(
+        cifar_10_dataset.test_images[backdoored_indices], dtype=torch.float32
+    ).permute(0, 3, 1, 2)[:TEST_SIZE_LIMIT]
+    backdoored_labels = torch.tensor(
+        cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
+    )[:TEST_SIZE_LIMIT]
+
+    backdoored_dataset = TensorDataset(backdoored_data, backdoored_labels)
+    backdoored_loader = DataLoader(
+        backdoored_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        drop_last=True,
+        pin_memory=True,
+        shuffle=False,
+    )
+
     # Load model
     print("Loading model...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -217,15 +237,25 @@ if __name__ == "__main__":
     # original state of the model to go back to after pruning a layer in the following iteration
     original_state_dict = copy.deepcopy(model.state_dict())
 
-    original_accuracy = evaluate_model(model, test_loader, device)
+    original_accuracy = evaluate_model(model, test_loader, device, transform_test)
     print(f"Original Test Accuracy: {original_accuracy}%")
     print("\nStarting pruning")
 
     os.makedirs(CSV_PRUNING_DIR, exist_ok=True)
-    csv_file_path = os.path.join(CSV_PRUNING_DIR, f"evaluate_pruning_{EXP_NAME}.csv")
+    csv_file_path = os.path.join(
+        CSV_PRUNING_DIR, f"evaluate_pruning_{EXP_NAME}_{TIMESTAMP}.csv"
+    )
     with open(csv_file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(["model_name", "pruning_rate", "layer_name", "accuracy"])
+        writer.writerow(
+            [
+                "model_name",
+                "pruning_rate",
+                "layer_name",
+                "accuracy",
+                "attack_success_rate",
+            ]
+        )
 
     for layer_idx, layer_to_prune in enumerate(layers_to_prune):
         print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
@@ -233,12 +263,15 @@ if __name__ == "__main__":
             print(f"Pruning with rate {rate}")
             prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate)
 
-            accuracy = evaluate_model(model, test_loader, device)
+            accuracy = evaluate_model(model, test_loader, device, transform_test)
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+
+            asr = evaluate_model(model, backdoored_loader, device, transform_test)
+            print(f"\tASR {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy])
+                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, asr])
 
             # restore model parameters
             model.load_state_dict(copy.deepcopy(original_state_dict))
