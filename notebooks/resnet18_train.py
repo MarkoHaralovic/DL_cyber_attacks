@@ -28,22 +28,23 @@ sys.path.append("models")
 from resnet18 import ResNet18
 
 # Params
-LR = 0.1
+LR = 0.001
 WD = 5e-4
 MOMENTUM = 0.9
-NUM_EPOCHS = 1
+NUM_EPOCHS = 300
 
-BATCH_SIZE = 256 if torch.cuda.is_available() else 64
+BATCH_SIZE = 128 if torch.cuda.is_available() else 64
 NUM_WORKERS = int(os.cpu_count() / 2)
 
-EXP_NAME = "test"
+EXP_NAME = "badnets_grid"
+POISONED_RATE = "5_percent"
 TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 
 
 # Training
 def train(epoch):
     start_time = time.time()
-    
+
     net.train()
     train_loss = 0
     correct = 0
@@ -52,6 +53,7 @@ def train(epoch):
         enumerate(trainloader), desc=f"Epoch {epoch}", total=len(trainloader)
     ):
         inputs, targets = inputs.to(device), targets.to(device)
+        inputs = transform_train(inputs)
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, targets)
@@ -67,9 +69,9 @@ def train(epoch):
         "Loss: %.3f | Acc: %.3f%% (%d/%d)"
         % (train_loss, 100.0 * correct / total, correct, total)
     )
-    
-    end_time = time.time()  
-    training_time = end_time - start_time 
+
+    end_time = time.time()
+    training_time = end_time - start_time
 
     print(f"Training Time for Epoch {epoch}: {training_time} seconds")
     return train_loss, 100.0 * correct / total, training_time
@@ -77,7 +79,7 @@ def train(epoch):
 
 def test(epoch):
     start_time = time.time()
-    
+
     global best_acc
     net.eval()
     test_loss = 0
@@ -88,6 +90,7 @@ def test(epoch):
             enumerate(testloader), f"Validating epoch {epoch}", total=len(testloader)
         ):
             inputs, targets = inputs.to(device), targets.to(device)
+            inputs = transform_test(inputs)
             outputs = net(inputs)
             loss = criterion(outputs, targets)
 
@@ -120,15 +123,17 @@ def test(epoch):
             os.path.join(checkpoints_dir, f"resnet18_ckpt_{TIMESTAMP}.pth"),
         )
         best_acc = acc
-    
-    end_time = time.time()  
+
+    end_time = time.time()
     testing_time = end_time - start_time
-    print(f"Testing Time for Epoch {epoch}: {testing_time} seconds")
-    
+    print(f"Testing Time for Epoch {epoch}: {testing_time} seconds\n")
+
     return test_loss, 100.0 * correct / total, testing_time
 
 
-def plot_metrics(train_loss, train_acc, val_loss, val_acc, total_training_time, total_testing_time):
+def plot_metrics(
+    train_loss, train_acc, val_loss, val_acc, total_training_time, total_testing_time
+):
     epochs = np.arange(NUM_EPOCHS)
 
     if max(val_loss) - min(train_loss) < 50:
@@ -165,24 +170,38 @@ def plot_metrics(train_loss, train_acc, val_loss, val_acc, total_training_time, 
 
     formatted_training_time = format_time(total_training_time)
     formatted_testing_time = format_time(total_testing_time)
-    
+
     fig.suptitle(
-        f"Resnet18 - {EXP_NAME}\n[LR={LR}, WD={WD}, M={MOMENTUM}, BS={BATCH_SIZE}]",
+        f"Resnet18 - {EXP_NAME}, {POISONED_RATE}\n[LR={LR}, WD={WD}, M={MOMENTUM}, BS={BATCH_SIZE}]",
         fontsize=14,
     )
-    plt.figtext(0.5, 0.01, f"Total Training Time: {formatted_training_time} | Total Testing Time: {formatted_testing_time}", ha="center", fontsize=10)
-    
+    plt.figtext(
+        0.5,
+        0.01,
+        f"Total Training Time: {formatted_training_time} | Total Testing Time: {formatted_testing_time}",
+        ha="center",
+        fontsize=10,
+    )
+
     plt.savefig(
         os.path.join(os.path.curdir, "checkpoints", f"resnet18_metrics_{TIMESTAMP}.svg")
     )
 
 
 if __name__ == "__main__":
-    datasets_folder = os.path.join(os.path.curdir, "datasets", "CIFAR10", "cifar-10")
-    train_images = os.path.join(datasets_folder, "train", "data.npy")
-    train_labels = os.path.join(datasets_folder, "train", "labels.npy")
-    test_images = os.path.join(datasets_folder, "test", "data.npy")
-    test_labels = os.path.join(datasets_folder, "test", "labels.npy")
+    # Clean data
+    # datasets_folder = os.path.join(os.path.curdir, "datasets", "CIFAR10", "cifar-10")
+    # train_images = os.path.join(datasets_folder, "train", "data.npy")
+    # train_labels = os.path.join(datasets_folder, "train", "labels.npy")
+    # test_images = os.path.join(datasets_folder, "test", "data.npy")
+    # test_labels = os.path.join(datasets_folder, "test", "labels.npy")
+
+    # Poisoned data
+    datasets_folder = os.path.join(os.path.curdir, "datasets", "badnets_grid")
+    train_images = os.path.join(datasets_folder, "train", POISONED_RATE, "data.npy")
+    train_labels = os.path.join(datasets_folder, "train", POISONED_RATE, "labels.npy")
+    test_images = os.path.join(datasets_folder, "test", POISONED_RATE, "data.npy")
+    test_labels = os.path.join(datasets_folder, "test", POISONED_RATE, "labels.npy")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -195,13 +214,13 @@ if __name__ == "__main__":
         [
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
+            # transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ]
     )
     transform_test = transforms.Compose(
         [
-            transforms.ToTensor(),
+            # transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ]
     )
@@ -220,8 +239,6 @@ if __name__ == "__main__":
         train_labels=train_labels,
         test_images=test_images,
         test_labels=test_labels,
-        train_transform=transform_train,
-        test_transform=transform_test,
     )
 
     testset = TensorDataset(
@@ -231,7 +248,10 @@ if __name__ == "__main__":
         torch.tensor(cifar_10_dataset.test_labels, dtype=torch.long),
     )
     testloader = DataLoader(
-        testset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS
+        testset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=NUM_WORKERS,
     )
 
     trainset = TensorDataset(
@@ -253,8 +273,8 @@ if __name__ == "__main__":
     val_acc_data = np.zeros(NUM_EPOCHS)
 
     total_training_time = 0
-    total_testing_time = 0  
-    
+    total_testing_time = 0
+
     # Train
     for epoch in range(NUM_EPOCHS):
         train_loss, train_acc, training_time = train(epoch)
@@ -270,6 +290,13 @@ if __name__ == "__main__":
         scheduler.step()
 
     print(f"Total Training Time: {format_time(total_training_time)}")
-    print(f"Total Testing Time: {format_time(total_testing_time)}") 
-    
-    plot_metrics(train_loss_data, train_acc_data, val_loss_data, val_acc_data)
+    print(f"Total Testing Time: {format_time(total_testing_time)}")
+
+    plot_metrics(
+        train_loss_data,
+        train_acc_data,
+        val_loss_data,
+        val_acc_data,
+        total_training_time,
+        total_testing_time,
+    )
