@@ -20,14 +20,12 @@ from resnet18 import ResNet18
 CSV_DIR = os.path.join("..", "..", "csv_records")
 CSV_PRUNING_DIR = os.path.join(CSV_DIR, "pruning")
 DATASETS_DIR = os.path.join("..", "..", "datasets")
-# CIFAR_DIR = os.path.join(DATASETS_DIR, "CIFAR10")
-CIFAR_DIR = os.path.join(DATASETS_DIR, "data_poisoning_1")
+CIFAR_DIR = os.path.join(DATASETS_DIR, "badnets_grid")
 
-# https://ferhr-my.sharepoint.com/:u:/g/personal/ds54097_fer_hr/EYbZspxkaE9NmVQnMnuX818BPZZcWp2L613XBfoRvfeAmQ?e=ntTYzw
-WEIGHT_PATH = os.path.join("..", "..", "checkpoints", "resnet18_ckpt_1221_1901.pth")
+WEIGHT_PATH = os.path.join("..", "..", "models", "badnets", "resnet18_ckpt_grid_05_percent.pth")
 
 # Experiment parameters
-EXP_NAME = "resnet"
+EXP_NAME = "resnet_badnets_grid"
 POISONED_RATE = "5_percent"
 
 PRUNING_RATES = [i / 10 for i in range(11)]
@@ -267,7 +265,7 @@ if __name__ == "__main__":
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
             asr = evaluate_model(model, backdoored_loader, device, transform_test)
-            print(f"\tASR {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            print(f"\tASR {asr} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
