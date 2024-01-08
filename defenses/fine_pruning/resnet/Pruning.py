@@ -20,6 +20,7 @@ from resnet18 import ResNet18
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
 
+
 CSV_DIR = os.path.join("..", "..", "..", config['CSV_DIR'])
 CSV_PRUNING_DIR = os.path.join(CSV_DIR, config['CSV_PRUNING_DIR'])
 DATASETS_DIR = os.path.join("..", "..", "..", config['DATASETS_DIR'])
