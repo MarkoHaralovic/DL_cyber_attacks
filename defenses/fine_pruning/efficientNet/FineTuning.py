@@ -6,7 +6,7 @@ Fine-tuning uses the pre-trained DNN weights to initialize training (instead of 
 smaller learning rate since the final weights are expected to be relatively close to the pretrained weights. 
 Fine-tuning is significantly faster than training a network from scratch.
 
-We use Efficient Net B0 for this purpose
+We use Efficient Net B0 and Resnet-18 for this purpose
 """
 import torch
 import torch.nn as nn
@@ -19,12 +19,14 @@ from tqdm import tqdm
 import sys
 import time
 
-sys.path.append("../../models")
+sys.path.append("../../../models")
 from efficient_net_functions import load_model, _train, test, evaluate_model, save_model
 
-sys.path.append("../../notebooks")
+sys.path.append("../../../notebooks")
 from Data import Data
 
+DATASETS_DIR = os.path.join("..","..","..", "datasets")
+CIFAR_DIR = os.path.join(DATASETS_DIR, "CIFAR10", "cifar-10")
 
 class FineTuning:
     """
@@ -116,52 +118,54 @@ class FineTuning:
         for param in list(self.model.parameters())[-unfreeze_layers:]:
             param.requires_grad = True
 
+if __name__ == "__main__":
+    
+    print("Loading data...")
+    train_images = os.path.join(CIFAR_DIR, "train", "data.npy")
+    train_labels = os.path.join(CIFAR_DIR, "train", "labels.npy")
+    test_images = os.path.join(CIFAR_DIR, "test", "data.npy")
+    test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
 
-train_images = "..\\..\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
-train_labels = "..\\..\\datasets\\CIFAR10\\cifar-10\\train\\labels.npy"
-test_images = "..\\..\\datasets\\CIFAR10\\cifar-10\\test\\data.npy"
-test_labels = "..\\..\\datasets\\CIFAR10\\cifar-10\\test\\labels.npy"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
-
-cifar_10_dataset = Data(
-    train_images=train_images,
-    train_labels=train_labels,
-    test_images=test_images,
-    test_labels=test_labels,
-)
+    cifar_10_dataset = Data(
+        train_images=train_images,
+        train_labels=train_labels,
+        test_images=test_images,
+        test_labels=test_labels,
+    )
 
 
-cifar_10_dataset.normalize()
+    cifar_10_dataset.normalize()
 
-train_data, train_labels, test_data, test_labels = cifar_10_dataset.to_tensor_permute(permute=True, permute_order=[0, 3, 1, 2])
+    train_data, train_labels, test_data, test_labels = cifar_10_dataset.to_tensor_permute(permute=True, permute_order=[0, 3, 1, 2])
 
-test_dataset = TensorDataset(test_data, test_labels)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    test_dataset = TensorDataset(test_data, test_labels)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-train_dataset = TensorDataset(train_data, train_labels)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)
+    train_dataset = TensorDataset(train_data, train_labels)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)
 
-learning_rate = 1e-2  # treba biti puno manji LR
-criterion = nn.CrossEntropyLoss()
+    learning_rate = 1e-2  # treba biti puno manji LR
+    criterion = nn.CrossEntropyLoss()
 
-fineTuning = FineTuning(train_loader, test_loader, cifar_10_dataset, device)
-fineTuning.build_model()
+    fineTuning = FineTuning(train_loader, test_loader, cifar_10_dataset, device)
+    fineTuning.build_model()
 
-optimizer = optim.Adam(fineTuning.model.head.classifier.parameters(), lr=learning_rate)
-fineTuning.fit_model(25, optimizer, train_loader, test_loader, criterion)
+    optimizer = optim.Adam(fineTuning.model.head.classifier.parameters(), lr=learning_rate)
+    fineTuning.fit_model(25, optimizer, train_loader, test_loader, criterion)
 
-fineTuning.unfreeze_model(20)
+    fineTuning.unfreeze_model(20)
 
-optimizer_ft = optim.Adam(
-    filter(lambda p: p.requires_grad, fineTuning.model.parameters()), lr=1e-5
-)
+    optimizer_ft = optim.Adam(
+        filter(lambda p: p.requires_grad, fineTuning.model.parameters()), lr=1e-5
+    )
 
-start_time = time.time()
+    start_time = time.time()
 
-fineTuning.fit_model(4, optimizer_ft, train_loader, test_loader, criterion)
+    fineTuning.fit_model(4, optimizer_ft, train_loader, test_loader, criterion)
 
-end_time = time.time()  
-training_time = end_time - start_time 
-print(f"Training Time for Epoch {epoch}: {training_time} seconds")
+    end_time = time.time()  
+    training_time = end_time - start_time 
+    print(f"Training Time for Epoch {epoch}: {training_time} seconds")

@@ -1,31 +1,3 @@
-import sys
-import os
-import torch
-import torch.nn as nn
-
-
-current_dir = os.path.dirname(__file__)
-parent_dir = os.path.dirname(current_dir)
-root_dir = os.path.dirname(parent_dir)
-sys.path.append(root_dir)
-
-
-from notebooks.Data import Data
-
-
-train_images = "..\\..\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
-train_labels = "..\\..\\datasets\\CIFAR10\\cifar-10\\train\\labels.npy"
-test_images = "..\\..\\datasets\\CIFAR10\\cifar-10\\test\\data.npy"
-test_labels = "..\\..\\datasets\\CIFAR10\\cifar-10\\test\\labels.npy"
-weight_path = "..\\..\\models\\efficientnet_v2_s_cifar10.pth"
-model_name = 'efficientnet_v2_s'
-
-cifar_10_dataset= Data(train_images=train_images,train_labels=train_labels,
-                     test_images=test_images,test_labels=test_labels)
-
-cifar_10_dataset.show_images()
-
-
 """
 This defense is based on two types of defenses:
       - fine tuning
@@ -46,7 +18,41 @@ are expected to be relatively close to the pretrained weights. Fine-tuning is si
 Fine Pruning:  first prunes the DNN returned by the attacker and then fine-tunes the pruned network.
 """
 
+import sys
+import os
+import torch
+import torch.nn as nn
+
+from Pruning import Pruning
+
+sys.path.append("../../../notebooks")
+from Data import Data
+
+
+train_images = "..\\..\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
+train_labels = "..\\..\\datasets\\CIFAR10\\cifar-10\\train\\labels.npy"
+test_images = "..\\..\\datasets\\CIFAR10\\cifar-10\\test\\data.npy"
+test_labels = "..\\..\\datasets\\CIFAR10\\cifar-10\\test\\labels.npy"
+weight_path = "..\\..\\models\\efficientnet_v2_s_cifar10.pth"
+model_name = 'efficientnet_v2_s'
+
+cifar_10_dataset= Data(train_images=train_images,train_labels=train_labels,
+                     test_images=test_images,test_labels=test_labels)
+
+cifar_10_dataset.show_images()
+
 class FinePruning():
-   def __init__ (self):
-      pass
-   
+   def __init__(self, train_loader, test_loader, cifar_data, device="cpu"):
+      self.model = model
+      self.train_loader = train_loader
+      self.test_loader = test_loader
+      self.cifar_data = cifar_data
+      self.device = device
+
+      # Initialize Pruning and FineTuning classes
+      self.pruning = Pruning(self.device)
+      self.fine_tuning = FineTuning(self.train_loader, 
+                                    self.test_loader, 
+                                    self.cifar_data,
+                                    self.device)
+      

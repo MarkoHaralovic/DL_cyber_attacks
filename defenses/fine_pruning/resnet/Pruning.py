@@ -9,20 +9,20 @@ from torchvision import transforms
 from tqdm import tqdm
 
 sys.path.append(
-    "../../notebooks"
+    "../../../notebooks"
 )  # note: run code from DL_cyber_attacks\defenses\fine_pruning, otherwise modify this line of code
 from Data import Data
 
-sys.path.append("../../models")
+sys.path.append("../../../models")
 from resnet18 import ResNet18
 
 
-CSV_DIR = os.path.join("..", "..", "csv_records")
+CSV_DIR = os.path.join("..", "..","..","csv_records")
 CSV_PRUNING_DIR = os.path.join(CSV_DIR, "pruning")
-DATASETS_DIR = os.path.join("..", "..", "datasets")
+DATASETS_DIR = os.path.join("..", "..","..", "datasets")
 CIFAR_DIR = os.path.join(DATASETS_DIR, "badnets_grid")
 
-WEIGHT_PATH = os.path.join("..", "..", "models", "badnets", "resnet18_ckpt_grid_05_percent.pth")
+WEIGHT_PATH = os.path.join("..", "..","..", "models", "badnets", "resnet18_ckpt_grid_05_percent.pth")
 
 # Experiment parameters
 EXP_NAME = "resnet_badnets_grid"
