@@ -134,6 +134,9 @@ if __name__ == "__main__":
     test_labels = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "labels.npy")
     log_file = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "log.csv")
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+    
     cifar_10_dataset = Data(
         train_images=train_images,
         train_labels=train_labels,

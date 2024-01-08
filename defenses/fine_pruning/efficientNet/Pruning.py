@@ -33,6 +33,9 @@ TRAIN_SIZE_LIMIT = config['TRAIN_SIZE_LIMIT']
 TEST_SIZE_LIMIT = config['TEST_SIZE_LIMIT']
 BATCH_SIZE = config['BATCH_SIZE']
 NUM_WORKERS = config['NUM_WORKERS']
+EXP_NAME = config['EXP_NAME'] 
+POISONED_RATE =config["POISONED_RATE"]
+TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 
 class Pruning():
     def __init__(self,device='cpu'):
@@ -97,7 +100,8 @@ if __name__ == "__main__":
     train_labels = os.path.join(CIFAR_DIR, "train", "labels.npy")
     test_images = os.path.join(CIFAR_DIR, "test", "data.npy")
     test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
-
+    log_file = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "log.csv")
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     
@@ -144,11 +148,35 @@ if __name__ == "__main__":
         pin_memory=True,
         shuffle=False,
     )
+    
+    # Isolated poisoned
+    with open(log_file) as f:
+        reader = csv.reader(f)
+        header = next(iter(reader))
+
+        backdoored_indices = [int(row[0]) for row in reader]
+
+    backdoored_data = torch.tensor(
+        cifar_10_dataset.test_images[backdoored_indices], dtype=torch.float32
+    ).permute(0, 3, 1, 2)[:TEST_SIZE_LIMIT]
+    backdoored_labels = torch.tensor(
+        cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
+    )[:TEST_SIZE_LIMIT]
+
+    backdoored_dataset = TensorDataset(backdoored_data, backdoored_labels)
+    backdoored_loader = DataLoader(
+        backdoored_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        drop_last=True,
+        pin_memory=True,
+        shuffle=False,
+    )
 
     # Load model
     print("Loading model...")
     
-    model =  load_model(
+    model = load_model(
             n_classes=cifar_10_dataset.num_classes,
             model_name=MODEL_NAME,
             device=device,
@@ -188,8 +216,16 @@ if __name__ == "__main__":
     csv_file_path = os.path.join(CSV_PRUNING_DIR, f"evaluate_pruning_{EXP_NAME}.csv")
     with open(csv_file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(["model_name", "pruning_rate", "layer_name", "accuracy"])
-
+        writer.writerow(
+            [
+                "model_name",
+                "pruning_rate",
+                "layer_name",
+                "accuracy",
+                "attack_success_rate",
+            ]
+        )
+        
     for layer_idx, layer_to_prune in enumerate(layers_to_prune):
         print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
         for rate in PRUNING_RATES:
@@ -198,11 +234,13 @@ if __name__ == "__main__":
 
             loss, accuracy = evaluate_model(model, test_loader, device)
             print(f"\tAccuracy {accuracy}, loss {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            
+            asr_loss,asr = evaluate_model(model, backdoored_loader, device)
+            print(f"\tASR {asr}, asr_loss {asr_loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy])
-
+                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, asr])
             # restore model parameters
             model.load_state_dict(copy.deepcopy(original_state_dict))
 

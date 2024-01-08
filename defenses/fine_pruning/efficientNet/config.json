@@ -19,5 +19,6 @@
     "BATCH_SIZE": 128,
     "NUM_WORKERS": 1,
     "LEARNING_RATE": 1e-2,
-    "EPOCHS": 20
+    "EXP_NAME": "efficientNet_badnets_grid",
+    "POISONED_RATE": "5_percent"
 }
