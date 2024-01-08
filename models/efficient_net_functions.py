@@ -33,6 +33,19 @@ def test(model, test_loader, criterion=nn.CrossEntropyLoss()):
 
 
 def evaluate_model(model, data_loader, device, criterion = nn.CrossEntropyLoss()):
+    """ Efficient Net model evaluation
+
+        Args:
+            model (torch.nn.Module): The neural network model to be evaluated.
+            test_loader (DataLoader): DataLoader object providing a dataset for evaluation. 
+                                    The dataset should yield pairs of images and their corresponding labels.
+            device (str): The device on which the model and data are loaded for evaluation. 
+                        Typically 'cuda' for GPU or 'cpu' for CPU.
+
+        Returns:
+            float: The accuracy of the model on the provided dataset, calculated as the percentage of correctly predicted samples.
+
+    """
     model.eval()
     total_loss = 0.0
     total_correct = 0
@@ -148,7 +161,7 @@ def load_model(
     device="cpu",
     pretrained=True,
     transfer_learning=False,
-):
+): 
     if pretrained:
         model = torch.hub.load(
             "hankyul2/EfficientNetV2-pytorch",

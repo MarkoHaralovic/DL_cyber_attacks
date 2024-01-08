@@ -18,7 +18,7 @@ import random
 from tqdm import tqdm
 import sys
 import time
-
+ 
 sys.path.append("../../../models")
 from efficient_net_functions import load_model, _train, test, evaluate_model, save_model
 
@@ -64,17 +64,20 @@ class FineTuning:
         self.train_loss, self.valid_loss = [], []
         self.train_acc, self.valid_acc = [], []
 
-    def build_model(self):
-        self.model = load_model(
+    def build_model(self, load_model = True, model=none):
+        if load_model:
+            self.model = load_model(
             n_classes=self.cifar_data.num_classes,
             model_name="efficientnet_v2_s",
             device=self.device,
             pretrained=True,
-            transfer_learning=True,
-        )
-        # print(self.model)
+            transfer_learning=False
+            )
+        else:
+            self.model = model
+            
         for param in self.model.parameters():
-            param.requires_grad = False  # True ???
+            param.requires_grad = False  
 
         # Replace the classifier
         num_features = self.model.head.classifier.in_features
@@ -135,7 +138,6 @@ if __name__ == "__main__":
         test_images=test_images,
         test_labels=test_labels,
     )
-
 
     cifar_10_dataset.normalize()
 

@@ -1,10 +1,10 @@
 {
-    "CSV_DIR": "../../csv_records",
+    "CSV_DIR": "../../../csv_records",
     "CSV_PRUNING_DIR": "pruning",
-    "DATASETS_DIR": "../../datasets",
+    "DATASETS_DIR": "../../../datasets",
     "CIFAR_DIR": "CIFAR10/cifar-10",
     "MODEL_NAME": "efficientnet_v2_s",
-    "WEIGHT_PATH": "../../models/efficientnet_v2_s_cifar10.pth",
+    "WEIGHT_PATH": "../../../models/efficientnet_v2_s_cifar10.pth",
     "EXP_NAME": "v2_no_limit",
     "PRUNING_RATES": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     "LAYER_KEYS": [
@@ -17,5 +17,7 @@
     "TRAIN_SIZE_LIMIT": 50000,
     "TEST_SIZE_LIMIT": 10000,
     "BATCH_SIZE": 128,
-    "NUM_WORKERS": 1
+    "NUM_WORKERS": 1,
+    "LEARNING_RATE": 1e-2,
+    "EPOCHS": 20
 }

@@ -9,6 +9,9 @@ from torch.utils.data import DataLoader, TensorDataset
 from torchvision import transforms
 from tqdm import tqdm
 
+sys.path.append("../../../models")
+from efficient_net_functions import load_model, _train, test, evaluate_model, save_model
+
 sys.path.append(
     "../../../notebooks"
 ) # note: run code from DL_cyber_attacks\defenses\fine_pruning, otherwise modify this line of code
@@ -34,44 +37,8 @@ NUM_WORKERS = config['NUM_WORKERS']
 class Pruning():
     def __init__(self,device='cpu'):
         self.device=device
-    
-    def evaluate_model(model, test_loader, device, transform = None):
-        """ Efficient Net model evaluation
 
-        Args:
-            model (torch.nn.Module): The neural network model to be evaluated.
-            test_loader (DataLoader): DataLoader object providing a dataset for evaluation. 
-                                    The dataset should yield pairs of images and their corresponding labels.
-            device (str): The device on which the model and data are loaded for evaluation. 
-                        Typically 'cuda' for GPU or 'cpu' for CPU.
-
-        Returns:
-            float: The accuracy of the model on the provided dataset, calculated as the percentage of correctly predicted samples.
-
-        """
-        model.eval()
-        total = 0
-        correct = 0
-        i = 0
-        if not transform:
-            resize_transform = transforms.Resize((224, 224), antialias=True)
-
-        with torch.no_grad():
-            for images, labels in tqdm(test_loader, desc="Evaulating model"):
-                # Resize images here if facing memory issues with whole dataset reshaped at once
-                images = torch.stack([resize_transform(img) for img in images])
-                images, labels = images.to(device), labels.to(device)
-                outputs = model(images)
-                _, predicted = torch.max(outputs, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-                i = i + 1
-
-        accuracy = 100 * correct / total
-        return accuracy
-
-
-    def prune_layer(layer_to_prune, layer_weight_key, prune_rate):
+    def prune_layer(model,train_loader,layer_to_prune, layer_weight_key, prune_rate):
         """
         Prune the specified layer of the model by setting the weights of certain channels to zero.
 
@@ -99,7 +66,7 @@ class Pruning():
             hook = layer_to_prune.register_forward_hook(forward_hook)
 
             model.eval()
-            for data, _ in tqdm(tr_loader, desc="Collecting layer outputs"):
+            for data, _ in tqdm(train_loader, desc="Collecting layer outputs"):
                 if device.type == "cuda":
                     model(data.cuda())
                 else:
@@ -131,12 +98,16 @@ if __name__ == "__main__":
     test_images = os.path.join(CIFAR_DIR, "test", "data.npy")
     test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+    
     cifar_10_dataset = Data(
         train_images=train_images,
         train_labels=train_labels,
         test_images=test_images,
         test_labels=test_labels,
     )
+    
     cifar_10_dataset.normalize()
 
     # Train
@@ -148,7 +119,7 @@ if __name__ == "__main__":
     ]
 
     train_dataset = TensorDataset(train_data, train_labels)
-    tr_loader = DataLoader(
+    train_loader = DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
@@ -176,14 +147,13 @@ if __name__ == "__main__":
 
     # Load model
     print("Loading model...")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = torch.hub.load(
-        "hankyul2/EfficientNetV2-pytorch",
-        MODEL_NAME,
-        nclass=cifar_10_dataset.num_classes,
-        skip_validation=False,
-    )
+    
+    model =  load_model(
+            n_classes=cifar_10_dataset.num_classes,
+            model_name=MODEL_NAME,
+            device=device,
+            pretrained=True
+            )
     model.to(device)
 
     state_dict = torch.load(WEIGHT_PATH)
@@ -209,8 +179,9 @@ if __name__ == "__main__":
     # original state of the model to go back to after pruning a layer in the following iteration
     original_state_dict = copy.deepcopy(model.state_dict())
 
-    original_accuracy = pruning.evaluate_model(test_loader, device)
+    original_loss, original_accuracy = evaluate_model(test_loader, device)
     print(f"Original Test Accuracy: {original_accuracy}%")
+    print(f"Original Test Loss: {original_loss}%")
     print("\nStarting pruning")
 
     os.makedirs(CSV_PRUNING_DIR, exist_ok=True)
@@ -223,10 +194,10 @@ if __name__ == "__main__":
         print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
         for rate in PRUNING_RATES:
             print(f"Pruning with rate {rate}")
-            pruning.prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate)
+            pruning.prune_layer(model, train_loader, layer_to_prune, layers_to_prune[layer_to_prune], rate)
 
-            accuracy = pruning.evaluate_model(model, test_loader, device)
-            print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            loss, accuracy = evaluate_model(model, test_loader, device)
+            print(f"\tAccuracy {accuracy}, loss {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
