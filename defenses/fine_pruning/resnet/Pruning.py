@@ -31,93 +31,92 @@ PRUNING_RATES = config['PRUNING_RATES']
 LAYER_KEYS = config['LAYER_KEYS']
 TRAIN_SIZE_LIMIT = config['TRAIN_SIZE_LIMIT']
 TEST_SIZE_LIMIT = config['TEST_SIZE_LIMIT']
-BATCH_SIZE = config['BATCH_SIZE']
+BATCH_SIZE =1 #config['BATCH_SIZE']
 NUM_WORKERS = config['NUM_WORKERS']
 TIMESTAMP = datetime.now().strftime("%m%d_%H%M")  
 
 class Pruning():
     def __init__(self, device='cpu'):
         self.device = device
-def evaluate_model(model, data_loader, device, transform):
-    """
-    Calculate model accuracy on given dataset
+    def evaluate_model(model, data_loader, device, transform):
+        """
+        Calculate model accuracy on given dataset
 
-    Args:
-        model (torch.nn.Module): The neural network model to be evaluated.
-        data_loader (DataLoader): DataLoader object providing a dataset for evaluation.
-                                  The dataset should yield pairs of images and their corresponding labels.
-        device (str): The device on which the model and data are loaded for evaluation.
-                      Typically 'cuda' for GPU or 'cpu' for CPU.
-        transform: Transforms to be applied during evaluation.
+        Args:
+            model (torch.nn.Module): The neural network model to be evaluated.
+            data_loader (DataLoader): DataLoader object providing a dataset for evaluation.
+                                    The dataset should yield pairs of images and their corresponding labels.
+            device (str): The device on which the model and data are loaded for evaluation.
+                        Typically 'cuda' for GPU or 'cpu' for CPU.
+            transform: Transforms to be applied during evaluation.
 
-    Returns:
-        float: The accuracy of the model on the provided dataset, calculated as the percentage of correctly predicted samples.
+        Returns:
+            float: The accuracy of the model on the provided dataset, calculated as the percentage of correctly predicted samples.
 
-    """
-    model.eval()
-    total = 0
-    correct = 0
-    i = 0
-
-    with torch.no_grad():
-        for images, labels in tqdm(data_loader, desc="Evaulating model"):
-            images, labels = transform(images.to(device)), labels.to(device)
-            outputs = model(images)
-            _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            i = i + 1
-
-    accuracy = 100 * correct / total
-    return accuracy
-
-
-def prune_layer(model, layer_to_prune, layer_weight_key, prune_rate):
-    """
-    Prune the specified layer of the model by setting the weights of certain channels to zero.
-
-    Args:
-        model (torch.nn.Module): The neural network model that is being pruned.
-
-        layer_to_prune (torch.nn.Module): The specific layer within the model that is to be pruned.
-                                          This is typically a convolutional layer in the last block of the model.
-
-        layer_weight_key (str): A key that uniquely identifies the layer to prune in the model's
-                                state dictionary. This key is used to access and modify the weights
-                                of the layer directly.
-
-        prune_rate (float): The proportion of channels to prune in the given layer. This rate should
-                            be a float between 0 and 1, where 1 means pruning all channels and 0 means
-                            pruning none.
-
-    """
-    with torch.no_grad():
-        container = []
-
-        def forward_hook(module, input, output):
-            container.append(output)
-
-        hook = layer_to_prune.register_forward_hook(forward_hook)
-
+        """
         model.eval()
-        for data, _ in tqdm(tr_loader, desc="Collecting layer outputs"):
-            if device.type == "cuda":
-                model(data.cuda())
-            else:
-                model(data)
-        hook.remove()
+        total = 0
+        correct = 0
+        i = 0
 
-        container = torch.cat(container, dim=0)
-        activation = torch.mean(container, dim=[0, 2, 3])
-        seq_sort = torch.argsort(activation)
-        num_channels = len(activation)
-        prunned_channels = int(num_channels * prune_rate)
+        with torch.no_grad():
+            for images, labels in tqdm(data_loader, desc="Evaulating model"):
+                images, labels = transform(images.to(device)), labels.to(device)
+                outputs = model(images)
+                _, predicted = torch.max(outputs, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                i = i + 1
 
-        mask = torch.ones(layer_to_prune.weight.size()).to(device)
-        for element in seq_sort[:prunned_channels]:
-            mask[element, :, :, :] = 0
+        accuracy = 100 * correct / total
+        return accuracy
 
-        layer_to_prune.weight.data *= mask
+    def prune_layer(model, layer_to_prune, layer_weight_key, prune_rate):
+        """
+        Prune the specified layer of the model by setting the weights of certain channels to zero.
+
+        Args:
+            model (torch.nn.Module): The neural network model that is being pruned.
+
+            layer_to_prune (torch.nn.Module): The specific layer within the model that is to be pruned.
+                                            This is typically a convolutional layer in the last block of the model.
+
+            layer_weight_key (str): A key that uniquely identifies the layer to prune in the model's
+                                    state dictionary. This key is used to access and modify the weights
+                                    of the layer directly.
+
+            prune_rate (float): The proportion of channels to prune in the given layer. This rate should
+                                be a float between 0 and 1, where 1 means pruning all channels and 0 means
+                                pruning none.
+
+        """
+        with torch.no_grad():
+            container = []
+
+            def forward_hook(module, input, output):
+                container.append(output)
+
+            hook = layer_to_prune.register_forward_hook(forward_hook)
+
+            model.eval()
+            for data, _ in tqdm(tr_loader, desc="Collecting layer outputs"):
+                if device.type == "cuda":
+                    model(data.cuda())
+                else:
+                    model(data)
+            hook.remove()
+
+            container = torch.cat(container, dim=0)
+            activation = torch.mean(container, dim=[0, 2, 3])
+            seq_sort = torch.argsort(activation)
+            num_channels = len(activation)
+            prunned_channels = int(num_channels * prune_rate)
+
+            mask = torch.ones(layer_to_prune.weight.size()).to(device)
+            for element in seq_sort[:prunned_channels]:
+                mask[element, :, :, :] = 0
+
+            layer_to_prune.weight.data *= mask
 
 
 if __name__ == "__main__":
@@ -233,7 +232,9 @@ if __name__ == "__main__":
     # original state of the model to go back to after pruning a layer in the following iteration
     original_state_dict = copy.deepcopy(model.state_dict())
 
-    original_accuracy = evaluate_model(model, test_loader, device, transform_test)
+    pruning = Pruning(device)
+    
+    original_accuracy = pruning.evaluate_model(model, test_loader, device, transform_test)
     print(f"Original Test Accuracy: {original_accuracy}%")
     print("\nStarting pruning")
 
@@ -257,12 +258,12 @@ if __name__ == "__main__":
         print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
         for rate in PRUNING_RATES:
             print(f"Pruning with rate {rate}")
-            prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate)
+            pruning.prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate)
 
-            accuracy = evaluate_model(model, test_loader, device, transform_test)
+            accuracy = pruning.evaluate_model(model, test_loader, device, transform_test)
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
-            asr = evaluate_model(model, backdoored_loader, device, transform_test)
+            asr = pruning.evaluate_model(model, backdoored_loader, device, transform_test)
             print(f"\tASR {asr} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
             with open(csv_file_path, mode="a", newline="") as file:

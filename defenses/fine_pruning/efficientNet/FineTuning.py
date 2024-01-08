@@ -1,12 +1,12 @@
 """
-This is the implement of fine-tuning proposed in [1].
+This is the implementation of fine-tuning proposed in [1].
 [1] Fine-Pruning: Defending Against Backdooring Attacks on Deep Neural Networks. RAID, 2018.
 
 Fine-tuning uses the pre-trained DNN weights to initialize training (instead of random initialization) and a
 smaller learning rate since the final weights are expected to be relatively close to the pretrained weights. 
 Fine-tuning is significantly faster than training a network from scratch.
 
-We use Efficient Net B0 and Resnet-18 for this purpose
+Here we use Efficient Net B0 for this purpose
 """
 import torch
 import torch.nn as nn
@@ -28,6 +28,10 @@ from Data import Data
 
 DATASETS_DIR = os.path.join("..","..","..", "datasets")
 CIFAR_DIR = os.path.join(DATASETS_DIR, "CIFAR10", "cifar-10")
+TRAIN_SIZE_LIMIT = config['TRAIN_SIZE_LIMIT']
+TEST_SIZE_LIMIT = config['TEST_SIZE_LIMIT']
+BATCH_SIZE = config['BATCH_SIZE']
+NUM_WORKERS = config['NUM_WORKERS']
 
 class FineTuning:
     """
@@ -142,13 +146,39 @@ if __name__ == "__main__":
 
     cifar_10_dataset.normalize()
 
-    train_data, train_labels, test_data, test_labels = cifar_10_dataset.to_tensor_permute(permute=True, permute_order=[0, 3, 1, 2])
-
-    test_dataset = TensorDataset(test_data, test_labels)
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    train_data = torch.tensor(
+        cifar_10_dataset.train_images, dtype=torch.float32
+    ).permute(0, 3, 1, 2)[:TRAIN_SIZE_LIMIT]
+    train_labels = torch.tensor(cifar_10_dataset.train_labels, dtype=torch.long)[
+        :TRAIN_SIZE_LIMIT
+    ]
 
     train_dataset = TensorDataset(train_data, train_labels)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        drop_last=True,
+        pin_memory=True,
+    )
+
+    # Test
+    test_data = torch.tensor(cifar_10_dataset.test_images, dtype=torch.float32).permute(
+        0, 3, 1, 2
+    )[:TEST_SIZE_LIMIT]
+    test_labels = torch.tensor(cifar_10_dataset.test_labels, dtype=torch.long)[
+        :TEST_SIZE_LIMIT
+    ]
+
+    test_dataset = TensorDataset(test_data, test_labels)
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        drop_last=True,
+        pin_memory=True,
+        shuffle=False,
+    )
 
     learning_rate = 1e-2  # treba biti puno manji LR
     criterion = nn.CrossEntropyLoss()
