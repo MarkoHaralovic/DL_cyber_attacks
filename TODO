@@ -1,7 +1,0 @@
-1. Nabaviti zatrovane podatke
-2. Odrediti modele koji će se koristiti ta treniranje i evaluaciju napada i obrana (DNN modeli)
-3. Prilagoditi kodove s git repozitorija:
-   -https://github.com/THUYimingLi/BackdoorBox
-   -https://github.com/SCLBD/BackdoorBench
-4. Napraviti benchmark kod za testiranje napada i obrana
-5. Odrediti na kojem GPU će se trenirati modeli

@@ -7,6 +7,7 @@ from datetime import datetime
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision import transforms
 from tqdm import tqdm
+import json 
 
 sys.path.append(
     "../../../notebooks"
@@ -16,33 +17,27 @@ from Data import Data
 sys.path.append("../../../models")
 from resnet18 import ResNet18
 
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
 
-CSV_DIR = os.path.join("..", "..","..","csv_records")
-CSV_PRUNING_DIR = os.path.join(CSV_DIR, "pruning")
-DATASETS_DIR = os.path.join("..", "..","..", "datasets")
-CIFAR_DIR = os.path.join(DATASETS_DIR, "badnets_grid")
+CSV_DIR = os.path.join("..", "..", "..", config['CSV_DIR'])
+CSV_PRUNING_DIR = os.path.join(CSV_DIR, config['CSV_PRUNING_DIR'])
+DATASETS_DIR = os.path.join("..", "..", "..", config['DATASETS_DIR'])
+CIFAR_DIR = os.path.join(DATASETS_DIR, config['CIFAR_DIR'])
+WEIGHT_PATH = os.path.join("..", "..", "..", "models", "badnets", config['WEIGHT_PATH'])
+EXP_NAME = config['EXP_NAME']
+POISONED_RATE = config['POISONED_RATE']
+PRUNING_RATES = config['PRUNING_RATES']
+LAYER_KEYS = config['LAYER_KEYS']
+TRAIN_SIZE_LIMIT = config['TRAIN_SIZE_LIMIT']
+TEST_SIZE_LIMIT = config['TEST_SIZE_LIMIT']
+BATCH_SIZE = config['BATCH_SIZE']
+NUM_WORKERS = config['NUM_WORKERS']
+TIMESTAMP = datetime.now().strftime("%m%d_%H%M")  
 
-WEIGHT_PATH = os.path.join("..", "..","..", "models", "badnets", "resnet18_ckpt_grid_05_percent.pth")
-
-# Experiment parameters
-EXP_NAME = "resnet_badnets_grid"
-POISONED_RATE = "5_percent"
-
-PRUNING_RATES = [i / 10 for i in range(11)]
-LAYER_KEYS = [
-    "layer4.0.conv1",
-    "layer4.0.conv2",
-    "layer4.1.conv1",
-    "layer4.1.conv2",
-]
-
-TRAIN_SIZE_LIMIT = 50000
-TEST_SIZE_LIMIT = 10000
-BATCH_SIZE = 128
-NUM_WORKERS = 1
-TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
-
-
+class Pruning():
+    def __init__(self, device='cpu'):
+        self.device = device
 def evaluate_model(model, data_loader, device, transform):
     """
     Calculate model accuracy on given dataset

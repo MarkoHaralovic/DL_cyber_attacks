@@ -37,7 +37,7 @@ from datetime import datetime
 from Pruning import Pruning
 from FineTuning import FineTuning
 
-sys.path.append("../../../models")
+sys.path.append("../../../models_functions")
 from efficient_net_functions import load_model, _train, test, evaluate_model, save_model
 
 sys.path.append("../../../notebooks")

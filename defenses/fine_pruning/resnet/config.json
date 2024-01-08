@@ -1,0 +1,22 @@
+{
+    "CSV_DIR": "../../../csv_records",
+    "CSV_PRUNING_DIR": "pruning",
+    "DATASETS_DIR": "../../../datasets",
+    "CIFAR_DIR": "badnets_grid",
+    "MODEL_NAME": "efficientnet_v2_s",
+    "WEIGHT_PATH": "../../../models/badnets/resnet18_ckpt_grid_05_percent.pth",
+    "EXP_NAME": "resnet_badnets_grid",
+    "PRUNING_RATES": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    "LAYER_KEYS": [
+        "layer4.0.conv1",
+        "layer4.0.conv2",
+        "layer4.1.conv1",
+        "layer4.1.conv2"
+    ],
+    "TRAIN_SIZE_LIMIT": 50000,
+    "TEST_SIZE_LIMIT": 10000,
+    "BATCH_SIZE": 128,
+    "NUM_WORKERS": 1,
+    "LEARNING_RATE": 1e-2,
+    "POISONED_RATE": "5_percent"
+}

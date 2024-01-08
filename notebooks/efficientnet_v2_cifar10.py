@@ -25,7 +25,7 @@ import sys
 from Data import Data
 from auxiliary import format_time
 
-sys.path.append("../models")
+sys.path.append("../models_functions")
 from efficient_net_functions import test,train,evaluate_model,_train,load_model
 
 print(torch.__version__) 
