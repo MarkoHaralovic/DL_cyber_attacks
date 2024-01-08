@@ -38,7 +38,7 @@ class Pruning():
     def __init__(self,device='cpu'):
         self.device=device
 
-    def prune_layer(model,train_loader,layer_to_prune, layer_weight_key, prune_rate):
+    def prune_layer(self, model,train_loader,layer_to_prune, layer_weight_key, prune_rate):
         """
         Prune the specified layer of the model by setting the weights of certain channels to zero.
 
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     # original state of the model to go back to after pruning a layer in the following iteration
     original_state_dict = copy.deepcopy(model.state_dict())
 
-    original_loss, original_accuracy = evaluate_model(test_loader, device)
+    original_loss, original_accuracy = evaluate_model(model, test_loader, device)
     print(f"Original Test Accuracy: {original_accuracy}%")
     print(f"Original Test Loss: {original_loss}%")
     print("\nStarting pruning")

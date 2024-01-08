@@ -17,6 +17,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 import sys
+import os
 import time
  
 sys.path.append("../../../models")
@@ -64,7 +65,7 @@ class FineTuning:
         self.train_loss, self.valid_loss = [], []
         self.train_acc, self.valid_acc = [], []
 
-    def build_model(self, load_model = True, model=none):
+    def build_model(self, load_model = True, model = None):
         if load_model:
             self.model = load_model(
             n_classes=self.cifar_data.num_classes,

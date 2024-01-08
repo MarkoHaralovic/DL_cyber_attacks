@@ -30,6 +30,9 @@ import numpy as np
 import random
 from tqdm import tqdm
 import time
+import copy
+import csv
+from datetime import datetime
 
 from Pruning import Pruning
 from FineTuning import FineTuning
@@ -75,7 +78,7 @@ class FinePruning():
                                     self.test_loader, 
                                     self.cifar_data,
                                     self.device)
-      def prune(self):
+   def prune(self):
         os.makedirs(CSV_PRUNING_DIR, exist_ok=True)
         csv_file_path = os.path.join(CSV_PRUNING_DIR, f"evaluate_pruning_{EXP_NAME}.csv")
         with open(csv_file_path, mode="w", newline="") as file:
@@ -86,7 +89,7 @@ class FinePruning():
             print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
             for rate in PRUNING_RATES:
                 print(f"Pruning with rate {rate}")
-                self.pruning.prune_layer(self.model, self.train_loader,layer_to_prune, self.layers_to_prune[layer_to_prune], rate)
+                self.pruning.prune_layer(self.model, self.train_loader, layer_to_prune, self.layers_to_prune[layer_to_prune], rate)
 
                 loss, accuracy = evaluate_model(self.model, self.test_loader, self.device)
                 print(f"\tAccuracy {accuracy}, loss {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
@@ -98,7 +101,7 @@ class FinePruning():
                 # restore model parameters
                 self.model.load_state_dict(copy.deepcopy(original_state_dict))
 
-      def fine_tune(self,learning_rate, criterion):
+   def fine_tune(self,learning_rate, criterion):
         self.fineTuning.build_model(model = self.model)
 
         optimizer = optim.Adam(self.fineTuning.model.head.classifier.parameters(), lr=learning_rate)
@@ -216,10 +219,10 @@ if __name__ == "__main__":
        device="cpu"
        )
     
-    pprint("Original evaluation starting")
-    original_loss, original_accuracy = evaluate_model(test_loader, device)
-    print(f"Original Test Accuracy: {original_accuracy}%")
-    print(f"Original Test Loss: {original_loss}%")
+    print("Original evaluation starting")
+    # original_loss, original_accuracy = evaluate_model(model,test_loader, device)
+    # print(f"Original Test Accuracy: {original_accuracy}%")
+    # print(f"Original Test Loss: {original_loss}%")
     
     print("\nStarting pruning")
     fine_pruning.prune()
