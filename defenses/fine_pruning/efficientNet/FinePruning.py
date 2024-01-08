@@ -74,7 +74,7 @@ class FinePruning():
 
       # Initialize Pruning and FineTuning classes
       self.pruning = Pruning(self.device)
-      self.fine_tuning = FineTuning(self.train_loader, 
+      self.fineTuning = FineTuning(self.train_loader, 
                                     self.test_loader, 
                                     self.cifar_data,
                                     self.device)
@@ -102,10 +102,10 @@ class FinePruning():
                 self.model.load_state_dict(copy.deepcopy(original_state_dict))
 
    def fine_tune(self,learning_rate, criterion):
-        self.fineTuning.build_model(model = self.model)
+        self.fineTuning.build_model(load_model = False, model = self.model)
 
         optimizer = optim.Adam(self.fineTuning.model.head.classifier.parameters(), lr=learning_rate)
-        fineTuning.fit_model(25, optimizer, self.train_loader, self.test_loader, criterion)
+        self.fineTuning.fit_model(25, optimizer, self.train_loader, self.test_loader, criterion)
 
         self.fineTuning.unfreeze_model(20)
 
@@ -220,9 +220,9 @@ if __name__ == "__main__":
        )
     
     print("Original evaluation starting")
-    # original_loss, original_accuracy = evaluate_model(model,test_loader, device)
-    # print(f"Original Test Accuracy: {original_accuracy}%")
-    # print(f"Original Test Loss: {original_loss}%")
+    original_loss, original_accuracy = evaluate_model(model,test_loader, device)
+    print(f"Original Test Accuracy: {original_accuracy}%")
+    print(f"Original Test Loss: {original_loss}%")
     
     print("\nStarting pruning")
     fine_pruning.prune()
