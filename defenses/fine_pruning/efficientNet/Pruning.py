@@ -1,6 +1,7 @@
 import copy
 import csv
 import os
+import json
 import sys
 import torch
 from datetime import datetime
@@ -13,31 +14,22 @@ sys.path.append(
 ) # note: run code from DL_cyber_attacks\defenses\fine_pruning, otherwise modify this line of code
 from Data import Data
 
-
-CSV_DIR = os.path.join("..","..","..", "csv_records")
-CSV_PRUNING_DIR = os.path.join(CSV_DIR, "pruning")
-DATASETS_DIR = os.path.join("..","..","..", "datasets")
-CIFAR_DIR = os.path.join(DATASETS_DIR, "CIFAR10", "cifar-10")
-
-MODEL_NAME = "efficientnet_v2_s"
-WEIGHT_PATH = os.path.join("..","..","..", "models", "efficientnet_v2_s_cifar10.pth")
-
-# Experiment parameters
-EXP_NAME = "v2_no_limit"
-
-PRUNING_RATES = [i / 10 for i in range(11)]
-LAYER_KEYS = [
-    "blocks.39.block.depth_wise.0",
-    "blocks.39.block.point_wise.0",
-    "blocks.39.block.linear_bottleneck.0",
-    "blocks.39.block.se.fc1",  
-    "blocks.39.block.se.fc2",
-]
-
-TRAIN_SIZE_LIMIT = 50000
-TEST_SIZE_LIMIT = 10000
-BATCH_SIZE = 128
-NUM_WORKERS = 1
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
+    
+CSV_DIR = os.path.join(config['CSV_DIR'])
+CSV_PRUNING_DIR = os.path.join(CSV_DIR, config['CSV_PRUNING_DIR'])
+DATASETS_DIR = os.path.join(config['DATASETS_DIR'])
+CIFAR_DIR = os.path.join(DATASETS_DIR, config['CIFAR_DIR'])
+MODEL_NAME = config['MODEL_NAME']
+WEIGHT_PATH = os.path.join(config['WEIGHT_PATH'])
+EXP_NAME = config['EXP_NAME']
+PRUNING_RATES = config['PRUNING_RATES']
+LAYER_KEYS = config['LAYER_KEYS']
+TRAIN_SIZE_LIMIT = config['TRAIN_SIZE_LIMIT']
+TEST_SIZE_LIMIT = config['TEST_SIZE_LIMIT']
+BATCH_SIZE = config['BATCH_SIZE']
+NUM_WORKERS = config['NUM_WORKERS']
 
 class Pruning():
     def __init__(self,device='cpu'):
