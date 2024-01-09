@@ -8,6 +8,7 @@ from torchvision import transforms
 from PIL import Image
 from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
 import random
+import os
 
 import ssl
 
@@ -90,10 +91,10 @@ def load_CIFAR10_data(benign_root, batch_size, transform):
 
 
 if __name__ == "__main__":
-    path = "../../resources/bad_nets"
-    square_pattern = Image.open(f"{path}/trigger_image.png")
-    grid_pattern = Image.open(f"{path}/trigger_image_grid.png")
-    test_image = Image.open(f"{path}/kirby.png").convert("RGB")
+    path = os.path.join("..", "..", "resources", "bad_nets")
+    square_pattern = Image.open(os.path.join(path, "trigger_image.png"))
+    grid_pattern = Image.open(os.path.join(path, "trigger_image_grid.png"))
+    test_image = Image.open(os.path.join(path, "kirby.png")).convert("RGB")
 
     classes = ("airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck")
     poisoned_image_class = "airplane"
@@ -102,7 +103,7 @@ if __name__ == "__main__":
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     batch_size = 4
-    benign_root = "../../datasets/CIFAR10/cifar-10"
+    benign_root = os.path.join("..", "..", "datasets", "CIFAR10", "cifar-10")
 
     trainset, trainloader, testset, testloader = load_CIFAR10_data(benign_root, batch_size, transform)
 
@@ -130,5 +131,5 @@ if __name__ == "__main__":
     ################################
     # uncomment to save poisoned model (warning: cpu/ram intensive!)
     ################################
-    poisoned_dataset.save("../../datasets/CIFAR10/cifar-10/bad_nets/train")
+    poisoned_dataset.save(os.path.join("..", "..", "datasets", "CIFAR10", "cifar-10", "bad_nets", "train"))
     ################################
