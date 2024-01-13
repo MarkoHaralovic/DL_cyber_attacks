@@ -39,7 +39,7 @@ TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 class Pruning():
     def __init__(self, device='cpu'):
         self.device = device
-    def evaluate_model(model, data_loader, device, transform):
+    def evaluate_model(self, model, data_loader, device, transform):
         """
         Calculate model accuracy on given dataset
 
@@ -72,7 +72,7 @@ class Pruning():
         accuracy = 100 * correct / total
         return accuracy
 
-    def prune_layer(model, layer_to_prune, layer_weight_key, prune_rate):
+    def prune_layer(self,model, layer_to_prune, layer_weight_key, prune_rate):
         """
         Prune the specified layer of the model by setting the weights of certain channels to zero.
 
