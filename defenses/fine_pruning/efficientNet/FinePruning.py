@@ -267,11 +267,18 @@ if __name__ == "__main__":
     fine_pruning.prune()
     print("\nPruning done")
     
+    print("Pruning evaluation starting")
+    pruning_loss, pruning_accuracy = evaluate_model(model,test_loader, device)
+    
     print("\nStarting fine-tuning")
     learning_rate = config['LEARNING_RATE']
     criterion = nn.CrossEntropyLoss()
     fine_pruning.fine_tune(learning_rate,criterion)
     print("\nFine-tuning done")
+    
+    print("Fine tuning evaluation starting")
+    fine_tuning_loss, fine_tuning_accuracy = evaluate_model(model,test_loader, device)
+    
     
 
     

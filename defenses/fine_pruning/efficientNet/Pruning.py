@@ -245,3 +245,6 @@ if __name__ == "__main__":
             model.load_state_dict(copy.deepcopy(original_state_dict))
 
     print("\nDone")
+    pruning_loss, pruning_accuracy = evaluate_model(model, test_loader, device)
+    print(f"After Pruning Test Accuracy: {pruning_accuracy}%")
+    print(f"Original Test Loss: {pruning_loss}%")
