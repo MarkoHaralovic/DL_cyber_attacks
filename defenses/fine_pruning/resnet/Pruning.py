@@ -39,7 +39,7 @@ TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 class Pruning():
     def __init__(self, device='cpu'):
         self.device = device
-    def evaluate_model(self, model, data_loader, device, transform, criterion, backdoor_indices=None, backdoor_labels=None):
+    def evaluate_model(self, model, data_loader, device, transform, criterion=nn.CrossEntropyLoss(), backdoor_indices=None, backdoor_labels=None):
         """
         Calculate model accuracy, loss, and attacker's success rate on given dataset
 
@@ -330,7 +330,7 @@ if __name__ == "__main__":
             
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, asr])
+                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_attack_success])
 
             # restore model parameters
             model.load_state_dict(copy.deepcopy(original_state_dict))
