@@ -26,6 +26,8 @@ from auxiliary import format_time
 
 sys.path.append("models")
 from resnet18 import ResNet18
+sys.path.append("models_functions")
+from resnet_functions import train,test,plot_metrics
 
 # Params
 LR = 0.001
@@ -35,25 +37,23 @@ NUM_EPOCHS = 300
 
 BATCH_SIZE = 128 if torch.cuda.is_available() else 64
 NUM_WORKERS = int(os.cpu_count() / 2)
-
 EXP_NAME = "badnets_grid"
 POISONED_RATE = "5_percent"
 TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 
-sys.path.append("models_functions")
-from resnet_functions import train,test,plot_metrics
-
-CLEAN = False 
+CLEAN = True 
 
 if __name__ == "__main__":
     if CLEAN:
         # Clean data
+        print(f" Current directory is {os.path.curdir}")
         datasets_folder = os.path.join(os.path.curdir, "datasets", "CIFAR10", "cifar-10")
         train_images = os.path.join(datasets_folder, "train", "data.npy")
         train_labels = os.path.join(datasets_folder, "train", "labels.npy")
         test_images = os.path.join(datasets_folder, "test", "data.npy")
         test_labels = os.path.join(datasets_folder, "test", "labels.npy")
     else:
+        print(f" Current directory is {os.path.curdir}")
         # Poisoned data
         datasets_folder = os.path.join(os.path.curdir, "datasets", "badnets_grid")
         train_images = os.path.join(datasets_folder, "train", POISONED_RATE, "data.npy")
@@ -98,7 +98,6 @@ if __name__ == "__main__":
         test_images=test_images,
         test_labels=test_labels,
     )
-
     testset = TensorDataset(
         torch.tensor(cifar_10_dataset.test_images, dtype=torch.float32).permute(
             0, 3, 1, 2
@@ -135,12 +134,12 @@ if __name__ == "__main__":
 
     # Train
     for epoch in range(NUM_EPOCHS):
-        train_loss, train_acc, training_time = train(epoch)
+        train_loss, train_acc, training_time = train(net,epoch,trainloader)
         train_loss_data[epoch] = train_loss
         train_acc_data[epoch] = train_acc
         total_training_time += training_time
 
-        val_loss, val_acc, testing_time = test(epoch)
+        val_loss, val_acc, testing_time = test(net,epoch,testloader)
         val_loss_data[epoch] = val_loss
         val_acc_data[epoch] = val_acc
         total_testing_time += testing_time

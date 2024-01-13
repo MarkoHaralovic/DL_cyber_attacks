@@ -6,7 +6,10 @@ import torchvision
 from torchvision.transforms import functional as F
 from torchvision import transforms
 from PIL import Image
-from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
+import sys
+sys.path.append("../")
+from PoisonedCIFAR10 import PoisonedCIFAR10
+# from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
 import random
 import os
 

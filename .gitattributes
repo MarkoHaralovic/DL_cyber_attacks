@@ -1,0 +1,1 @@
+datasets/CIFAR10/cifar-10/bad_nets/train/5_percent/data.npy filter=lfs diff=lfs merge=lfs -text

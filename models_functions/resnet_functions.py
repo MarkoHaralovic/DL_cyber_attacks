@@ -6,9 +6,10 @@ import torch.backends.cudnn as cudnn
 import torchvision
 from datetime import datetime
 import time
-
+from tqdm import tqdm
+ 
 # Training
-def train(epoch):
+def train(net,epoch,trainloader):
     start_time = time.time()
 
     net.train()
@@ -43,7 +44,7 @@ def train(epoch):
     return train_loss, 100.0 * correct / total, training_time
 
 
-def test(epoch):
+def test(net,epoch,testloader):
     start_time = time.time()
 
     global best_acc
