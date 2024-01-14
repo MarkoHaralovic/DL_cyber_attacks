@@ -67,7 +67,7 @@ TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 
 class FinePruning():
    def __init__(self, train_loader, test_loader,backdoored_loader, cifar_data,model,layers_to_prune,
-                original_state_dict, backdoored_indices = None, backdoored_labels=None,device="cpu"):
+                original_state_dict,device="cpu"):
       self.model = model
       self.train_loader = train_loader
       self.test_loader = test_loader
@@ -77,13 +77,11 @@ class FinePruning():
       self.model = model 
       self.layers_to_prune = layers_to_prune
       self.original_state_dict = original_state_dict
-      
-      self.backdoored_indices=backdoored_indices
-      self.backdoored_labels = backdoored_labels
 
+      self.criterion=nn.CrossEntropyLoss()
       self.pruning = Pruning(self.device)
       
-   def evaluate_model(self,transform, criterion=nn.CrossEntropyLoss(), data_loader_type = "train" ,asr=False):
+   def evaluate_model(self,transform, data_loader_type = "train" ,asr=False):
       if data_loader_type =="train":
          data_loader = self.train_loader
       elif data_loader_type =="test":
@@ -91,11 +89,9 @@ class FinePruning():
       elif data_loader_type =="back":
          data_loader = self.backdoored_loader
       if asr:
-         acc,loss,att = self.pruning.evaluate_model(self.model, data_loader, device, transform, 
-                                  criterion, self.backdoor_indices, self.backdoor_labels)
+         acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform, self.criterion)
       else:
-         acc,loss,att = self.pruning.evaluate_model(self.model, data_loader, device, transform, 
-                                  criterion, backdoor_indices=None, backdoor_labels=None)
+         acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform, self.criterion)
       return acc,loss,att
    
    def restore_model(self):
@@ -114,16 +110,40 @@ class FinePruning():
         self.fineTuning.prepare_params()
         self.model_ft, self.hist = self.fineTuning.train_model(num_epochs=EPOCHS)
         
-        return self.model
-      
+        return self.model_ft
+
+class IndexedDataset(Dataset):
+    def __init__(self, data, labels):
+        self.data = data
+        self.labels = labels
+        assert len(data) == len(labels), "Data and labels must be of the same length"
+
+    def __getitem__(self, index):
+        return self.data[index], self.labels[index], index
+
+    def __len__(self):
+        return len(self.data)
+    
+def ASR(clean_acc, backdoor_acc):
+    return float(1- backdoor_acc/clean_acc)
+          
 if __name__ == "__main__":
+    
+    loading_clean = True
     # Load dataset
     print("Loading data...")
-    train_images = os.path.join(CIFAR_DIR, "train", POISONED_RATE, "data.npy")
-    train_labels = os.path.join(CIFAR_DIR, "train", POISONED_RATE, "labels.npy")
-    test_images = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "data.npy")
-    test_labels = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "labels.npy")
-    log_file = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "log.csv")
+    if loading_clean:
+        train_images = os.path.join(CIFAR_DIR, "train","data.npy")
+        train_labels = os.path.join(CIFAR_DIR, "train",  "labels.npy")
+        test_images = os.path.join(CIFAR_DIR, "test",  "data.npy")
+        test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
+        log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
+    else:
+        train_images = os.path.join(POISONED_DIR, "train", POISONED_RATE, "data.npy")
+        train_labels = os.path.join(POISONED_DIR, "train", POISONED_RATE, "labels.npy")
+        test_images = os.path.join(POISONED_DIR, "test", POISONED_RATE, "data.npy")
+        test_labels = os.path.join(POISONED_DIR, "test", POISONED_RATE, "labels.npy")
+        log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -197,13 +217,16 @@ if __name__ == "__main__":
     backdoored_data = torch.tensor(
         cifar_10_dataset.test_images[backdoored_indices], dtype=torch.float32
     ).permute(0, 3, 1, 2)[:TEST_SIZE_LIMIT]
+    
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT]
+    )[:TEST_SIZE_LIMIT] if not loading_clean else backdoored_labels
 
-    backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
+    # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
+    indexed_backdoored_dataset = IndexedDataset(backdoored_data, backdoored_data_labels)
     backdoored_loader = DataLoader(
-        backdoored_dataset,
+        # backdoored_dataset,
+        indexed_backdoored_dataset,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
         drop_last=True,
@@ -247,16 +270,22 @@ if __name__ == "__main__":
        model = model,
        layers_to_prune = layers_to_prune,
        original_state_dict = original_state_dict,
-       backdoored_indices = backdoored_indices,
-       backdoored_labels = backdoored_labels,
        device="cpu")
     
-    original_accuracy, original_loss,attack_success = finePruning.evaluate_model(transform = transform_test, 
-                                                                                 data_loader_type = "test" ,
-                                                                                 asr=False)
+    original_accuracy, original_loss = finePruning.evaluate_model(transform = transform_test, 
+                                                                  data_loader_type = "test" 
+                                                                  )
     print(f"Original Test Accuracy: {original_accuracy}%")
     print(f"Original Test Loss: {original_loss}%")
-    print(f"Attack Success: {attack_success}")  
+
+    org_backdoor_accuracy,org_backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
+                                                                      data_loader_type = "back"
+                                                                      )
+    print(f"Original Accuracy on Backdoored Data: {org_backdoor_accuracy}%")
+    print(f"Original Loss on Backdoored Data: {org_backdoor_loss}%")
+    
+    org_asr = ASR(original_accuracy, org_backdoor_accuracy)
+    print(f"Original ASR  : {org_asr}")
 
     print("\nStarting pruning")
 
@@ -272,7 +301,8 @@ if __name__ == "__main__":
                 "pruning_rate",
                 "layer_name",
                 "accuracy",
-                "attack_success_rate",
+                "backdoor_accuracy",
+                "attack_success_rate"
             ]
         )
 
@@ -282,40 +312,47 @@ if __name__ == "__main__":
             print(f"Pruning with rate {rate}")
             finePruning.prune_layer(layer_to_prune, layers_to_prune[layer_to_prune], rate)
 
-            accuracy,loss,attack_success = finePruning.evaluate_model(transform = transform_test, 
-                                                                      data_loader_type = "test" ,
-                                                                      asr=True 
-                                                                      )
+            accuracy,loss = finePruning.evaluate_model(transform = transform_test, 
+                                                        data_loader_type = "test"
+                                                        )
             print("Running on clean data")
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
-            print(f"Attack Success: {attack_success} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
-            backdoor_accuracy,backdoor_loss,backdoor_attack_success = finePruning.evaluate_model(transform = transform_test, 
-                                                                      data_loader_type = "back" ,
-                                                                      asr=True 
+            backdoor_accuracy,backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
+                                                                      data_loader_type = "back"
                                                                       )
             print("Running on poisoned data")
             print(f"\tAccuracy {backdoor_accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {backdoor_loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
-            print(f"Attack Success: {backdoor_attack_success} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            
+            asr = ASR(accuracy, backdoor_accuracy)
+            print(f"ASR  : {asr}")
             
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_attack_success])
+                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_accuracy, asr])
 
             finePruning.restore_model()
 
     print("\nDone")
     
-    pruning_accuracy, pruning_loss, pruning_asr = finePruning.evaluate_model(
-                                                                      transform = transform_test, 
-                                                                      data_loader_type = "test" ,
-                                                                      asr=True 
+    pruning_accuracy, pruning_loss = finePruning.evaluate_model(
+                                                                transform = transform_test, 
+                                                                data_loader_type = "test" ,
+                                                                )
+    print(f"After Pruning  Test Accuracy on Clean Data: {pruning_accuracy}%")
+    print(f"After Pruning  Test Loss on Clean Data: {pruning_loss}%")
+    
+    print("Running on poisoned data")
+    backdoor_accuracy,backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
+                                                                      data_loader_type = "back"
                                                                       )
-    print(f"After Pruning  Test Accuracy: {pruning_accuracy}%")
-    print(f"After Pruning  Test Loss: {pruning_loss}%")
-    print(f"Attack Success: {pruning_asr}")
+    print(f"\tAccuracy on Poisoned Data {backdoor_accuracy}")
+    print(f"Test Loss on Poisoned Data: {backdoor_loss}")
+            
+    asr = ASR(pruning_accuracy, backdoor_accuracy)
+    print(f"Final ASR after Pruning  : {asr}")
 
     mean, std = [0.4914, 0.4822, 0.4465], [0.247, 0.243, 0.261]
     img_size=224
@@ -354,4 +391,24 @@ if __name__ == "__main__":
         dataloaders_dict = dataloaders_dict,
         feature_extract = False
     )
+    
+    print(f"Running final evaluation of fine tuned model on clean and poisoned dataset")
+    ft_accuracy, ft_loss = evaluate_model(model =fineTunedModel,
+                                          data_loader = test_loader, 
+                                          device = device
+                                          )
+    print(f"Ft Test Accuracy: {ft_accuracy}%")
+    print(f"Ft Test Loss: {ft_loss}%")
+
+    ft_backdoor_accuracy,ft_backdoor_loss = evaluate_model(model =fineTunedModel,
+                                                           data_loader = backdoored_loader, 
+                                                           device = device
+                                                          )
+    print(f"Ft Accuracy on Backdoored Data: {ft_backdoor_accuracy}%")
+    print(f"Ft on Backdoored Data: {ft_backdoor_loss}%")
+    
+    ft_asr = ASR(ft_accuracy, ft_backdoor_accuracy)
+    print(f"Ft ASR  : {ft_asr}")
+    
+    
     

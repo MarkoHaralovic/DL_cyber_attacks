@@ -346,11 +346,11 @@ if __name__ == "__main__":
             print(f"Test Loss: {backdoor_loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
             asr = ASR(accuracy, backdoor_accuracy)
-            print(f"Attack Success: {basr} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            print(f"Attack Success: {asr} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_accuracy,asr])
+                writer.writerow(["resnet18", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_accuracy,asr])
 
             # restore model parameters
             model.load_state_dict(copy.deepcopy(original_state_dict))
