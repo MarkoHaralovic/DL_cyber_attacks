@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, TensorDataset, Dataset
 from torchvision import transforms
 from tqdm import tqdm
 import json 
+import torch.nn as nn
 
 sys.path.append(
     "../../../notebooks"
@@ -39,7 +40,7 @@ TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 class Pruning():
     def __init__(self, device='cpu'):
         self.device = device
-    def evaluate_model(self, model, data_loader, device, transform, criterion=nn.CrossEntropyLoss(), backdoor_indices=None, backdoor_labels=None):
+    def evaluate_model(self, model, data_loader, device, transform):
         """
         Calculate model accuracy, loss, and attacker's success rate on given dataset
 
@@ -49,15 +50,12 @@ class Pruning():
             device (str): The device on which the model and data are loaded for evaluation.
             transform: Transforms to be applied during evaluation.
             criterion: Loss function to calculate the loss.
-            backdoor_indices (list or None): A list containing the indices of samples that are backdoored.
-            backdoor_labels (list or None): A list containing the attacker's intended labels for each sample. 
-                                        If None, the function will compute regular accuracy and loss.
 
         Returns:
             float: The accuracy of the model on the provided dataset.
             float: The average loss of the model on the provided dataset.
-            float: The attacker's success rate, if attack_labels is provided. Otherwise, None.
         """
+        criterion=nn.CrossEntropyLoss()
         model.eval()
         total = 0
         correct = 0
@@ -77,19 +75,10 @@ class Pruning():
                 total_loss += loss.item()
                 total_batches += 1
                 
-                if backdoor_indices is not None and backdoor_labels is not None:
-                    for idx,  (pred_label, true_label) in enumerate(zip(predicted, labels)):
-                        if indices[idx] in backdoor_indices:
-                            total_backdoored += 1
-                            # Check if predicted label matches the attacker's intended label
-                            attacker_label = backdoor_labels[backdoor_indices.index(indices[idx])]
-                            attack_successes += (pred_label == attacker_label).sum().item()
-
         accuracy = 100 * correct / total
         average_loss = total_loss / total_batches
-        attack_success_rate = (100 * attack_successes / total_backdoored) if backdoor_indices is not None else None
 
-        return accuracy, average_loss, attack_success_rate
+        return accuracy, average_loss
 
 
     def prune_layer(self,model, layer_to_prune, layer_weight_key, prune_rate):
@@ -120,7 +109,7 @@ class Pruning():
             hook = layer_to_prune.register_forward_hook(forward_hook)
 
             model.eval()
-            for data, _ in tqdm(tr_loader, desc="Collecting layer outputs"):
+            for data, _ , _ in tqdm(tr_loader, desc="Collecting layer outputs"):
                 if device.type == "cuda":
                     model(data.cuda())
                 else:
@@ -151,14 +140,26 @@ class IndexedDataset(Dataset):
     def __len__(self):
         return len(self.data)
     
+def ASR(clean_acc, backdoor_acc):
+    return float(1- backdoor_acc/clean_acc)
+    
 if __name__ == "__main__":
+    
+    loading_clean = True
     # Load dataset
     print("Loading data...")
-    train_images = os.path.join(CIFAR_DIR, "train", POISONED_RATE, "data.npy")
-    train_labels = os.path.join(CIFAR_DIR, "train", POISONED_RATE, "labels.npy")
-    test_images = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "data.npy")
-    test_labels = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "labels.npy")
-    log_file = os.path.join(CIFAR_DIR, "test", POISONED_RATE, "log.csv")
+    if loading_clean:
+        train_images = os.path.join(CIFAR_DIR, "train","data.npy")
+        train_labels = os.path.join(CIFAR_DIR, "train",  "labels.npy")
+        test_images = os.path.join(CIFAR_DIR, "test",  "data.npy")
+        test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
+        log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
+    else:
+        train_images = os.path.join(POISONED_DIR, "train", POISONED_RATE, "data.npy")
+        train_labels = os.path.join(POISONED_DIR, "train", POISONED_RATE, "labels.npy")
+        test_images = os.path.join(POISONED_DIR, "test", POISONED_RATE, "data.npy")
+        test_labels = os.path.join(POISONED_DIR, "test", POISONED_RATE, "labels.npy")
+        log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -232,11 +233,13 @@ if __name__ == "__main__":
     backdoored_data = torch.tensor(
         cifar_10_dataset.test_images[backdoored_indices], dtype=torch.float32
     ).permute(0, 3, 1, 2)[:TEST_SIZE_LIMIT]
+    
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT]
+    )[:TEST_SIZE_LIMIT] if not loading_clean else backdoored_labels
 
-    backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
+    # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
+    backdoored_dataset = IndexedDataset(train_data, train_labels)
     backdoored_loader = DataLoader(
         backdoored_dataset,
         batch_size=BATCH_SIZE,
@@ -245,6 +248,12 @@ if __name__ == "__main__":
         pin_memory=True,
         shuffle=False,
     )
+    
+    
+    print(f"Len of train dataset: {len(train_data)}")
+    print(f"Len of test dataset: {len(test_data)}")
+    print(f"Len of backdoored dataset: {len(backdoored_data)}")
+     
 
     # Load model
     print("Loading model...")
@@ -253,7 +262,11 @@ if __name__ == "__main__":
     model = ResNet18()
     model.to(device)
 
-    state_dict = torch.load(WEIGHT_PATH)
+    if device == "cuda":
+        state_dict = torch.load(WEIGHT_PATH)
+    else:
+        state_dict = torch.load(WEIGHT_PATH, map_location=torch.device('cpu'))
+
     model.load_state_dict(state_dict["net"])
     print(state_dict["epoch"], state_dict["acc"])
 
@@ -276,15 +289,19 @@ if __name__ == "__main__":
 
     pruning = Pruning(device)
     
-    original_accuracy, original_loss,attack_success = pruning.evaluate_model(model, 
-                                                                             test_loader,
-                                                                             device,
-                                                                             transform_test,
-                                                                             backdoored_indices,
-                                                                             backdoored_labels)
+    original_accuracy, original_loss= pruning.evaluate_model(model, 
+                                                            test_loader,
+                                                            device,
+                                                            transform_test)
     print(f"Original Test Accuracy: {original_accuracy}%")
     print(f"Original Test Loss: {original_loss}%")
-    print(f"Attack Success: {attack_success}")  
+    
+    original_backdoor_accuracy, original_backdoor_loss= pruning.evaluate_model(model, 
+                                                                               backdoored_loader, 
+                                                                               device,
+                                                                               transform_test)
+    print(f"Original Accuracy on Backdoored Data: {original_backdoor_accuracy}%")
+    print(f"Original Loss on Backdoored Data: {original_backdoor_loss}%")
 
     print("\nStarting pruning")
 
@@ -299,8 +316,9 @@ if __name__ == "__main__":
                 "model_name",
                 "pruning_rate",
                 "layer_name",
-                "accuracy",
-                "attack_success_rate",
+                "accuracy_clean",
+                "accuracy_backdoor",
+                "attack_success_rate"
             ]
         )
 
@@ -310,40 +328,39 @@ if __name__ == "__main__":
             print(f"Pruning with rate {rate}")
             pruning.prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate)
 
-            accuracy,loss,attack_success = pruning.evaluate_model(model, test_loader, device, transform_test)
+            accuracy,loss = pruning.evaluate_model(model,
+                                                   test_loader,
+                                                   device,
+                                                   transform_test)
             print("Running on clean data")
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
-            print(f"Attack Success: {attack_success} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
-            backdoor_accuracy,backdoor_loss,backdoor_attack_success = pruning.evaluate_model(model, 
-                                                                                             backdoored_loader, 
-                                                                                             device,
-                                                                                             transform_test,
-                                                                                             backdoored_indices,
-                                                                                             backdoored_labels)
+            backdoor_accuracy,backdoor_loss = pruning.evaluate_model(model, 
+                                                                    backdoored_loader, 
+                                                                    device,
+                                                                    transform_test)
             
             print("Running on poisoned data")
             print(f"\tAccuracy {backdoor_accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {backdoor_loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
-            print(f"Attack Success: {backdoor_attack_success} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            
+            asr = ASR(accuracy, backdoor_accuracy)
+            print(f"Attack Success: {basr} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_attack_success])
+                writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_accuracy,asr])
 
             # restore model parameters
             model.load_state_dict(copy.deepcopy(original_state_dict))
 
     print("\nDone")
     
-    pruning_accuracy, pruning_loss, pruning_asr = pruning.evaluate_model(model, 
-                                                                         test_loader,
-                                                                         device,
-                                                                         transform_test,
-                                                                         backdoored_indices,
-                                                                         backdoored_labels
-                                                                         )
+    pruning_accuracy, pruning_loss = pruning.evaluate_model(model, 
+                                                            test_loader,
+                                                            device,
+                                                            transform_test,
+                                                            )
     print(f"After Pruning  Test Accuracy: {pruning_accuracy}%")
     print(f"After Pruning  Test Loss: {pruning_loss}%")
-    print(f"Attack Success: {pruning_asr}")
