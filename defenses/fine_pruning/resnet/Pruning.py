@@ -26,6 +26,7 @@ CSV_DIR = os.path.join("..", "..", "..", config['CSV_DIR'])
 CSV_PRUNING_DIR = os.path.join(CSV_DIR, config['CSV_PRUNING_DIR'])
 DATASETS_DIR = os.path.join("..", "..", "..", config['DATASETS_DIR'])
 CIFAR_DIR = os.path.join(DATASETS_DIR, config['CIFAR_DIR'])
+POISONED_DIR = os.path.join(DATASETS_DIR, config['POISONED_DIR'])
 WEIGHT_PATH = config['WEIGHT_PATH']
 EXP_NAME = config['EXP_NAME']
 POISONED_RATE = config['POISONED_RATE']
@@ -33,7 +34,7 @@ PRUNING_RATES = config['PRUNING_RATES']
 LAYER_KEYS = config['LAYER_KEYS']
 TRAIN_SIZE_LIMIT = config['TRAIN_SIZE_LIMIT']
 TEST_SIZE_LIMIT = config['TEST_SIZE_LIMIT']
-BATCH_SIZE =1 #config['BATCH_SIZE']
+BATCH_SIZE = config['BATCH_SIZE']
 NUM_WORKERS = config['NUM_WORKERS']
 TIMESTAMP = datetime.now().strftime("%m%d_%H%M")  
 
@@ -81,7 +82,7 @@ class Pruning():
         return accuracy, average_loss
 
 
-    def prune_layer(self,model, layer_to_prune, layer_weight_key, prune_rate):
+    def prune_layer(self,model, layer_to_prune, layer_weight_key, prune_rate,train_loader, device='cpu'):
         """
         Prune the specified layer of the model by setting the weights of certain channels to zero.
 
@@ -109,8 +110,8 @@ class Pruning():
             hook = layer_to_prune.register_forward_hook(forward_hook)
 
             model.eval()
-            for data, _ , _ in tqdm(tr_loader, desc="Collecting layer outputs"):
-                if device.type == "cuda":
+            for data, _ , _ in tqdm(train_loader, desc="Collecting layer outputs"):
+                if device == "cuda":
                     model(data.cuda())
                 else:
                     model(data)
@@ -145,7 +146,7 @@ def ASR(clean_acc, backdoor_acc):
     
 if __name__ == "__main__":
     
-    loading_clean = True
+    loading_clean = False
     # Load dataset
     print("Loading data...")
     if loading_clean:
@@ -188,7 +189,7 @@ if __name__ == "__main__":
 
     # train_dataset = TensorDataset(train_data, train_labels)
     indexed_train_dataset = IndexedDataset(train_data, train_labels)
-    tr_loader = DataLoader(
+    train_loader = DataLoader(
         # train_dataset,
         indexed_train_dataset,
         batch_size=BATCH_SIZE,
@@ -214,7 +215,7 @@ if __name__ == "__main__":
         num_workers=NUM_WORKERS,
         drop_last=True,
         pin_memory=True,
-        shuffle=False,
+        shuffle=False
     )
 
     # Isolated poisoned
@@ -326,7 +327,7 @@ if __name__ == "__main__":
         print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
         for rate in PRUNING_RATES:
             print(f"Pruning with rate {rate}")
-            pruning.prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate)
+            pruning.prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate,train_loader,device=device)
 
             accuracy,loss = pruning.evaluate_model(model,
                                                    test_loader,

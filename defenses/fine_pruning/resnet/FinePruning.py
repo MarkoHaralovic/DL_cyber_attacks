@@ -24,7 +24,7 @@ import json
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset,Dataset
 from torchvision import transforms, models
 import numpy as np
 import random
@@ -37,6 +37,10 @@ from datetime import datetime
 from Pruning import Pruning
 from FineTuningAlt import FineTuning
 
+sys.path.append("../../../models")
+from resnet18 import ResNet18
+
+
 sys.path.append("../../../models_functions")
 from efficient_net_functions import load_model, _train, test, evaluate_model, save_model
 
@@ -46,10 +50,11 @@ from Data import Data
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
     
-CSV_DIR = os.path.join(config['CSV_DIR'])
+CSV_DIR = os.path.join("..", "..", "..", config['CSV_DIR'])
 CSV_PRUNING_DIR = os.path.join(CSV_DIR, config['CSV_PRUNING_DIR'])
-DATASETS_DIR = os.path.join(config['DATASETS_DIR'])
+DATASETS_DIR = os.path.join("..", "..", "..", config['DATASETS_DIR'])
 CIFAR_DIR = os.path.join(DATASETS_DIR, config['CIFAR_DIR'])
+POISONED_DIR = os.path.join(DATASETS_DIR, config['POISONED_DIR'])
 MODEL_NAME = config['MODEL_NAME']
 WEIGHT_PATH = os.path.join(config['WEIGHT_PATH'])
 EXP_NAME = config['EXP_NAME']
@@ -89,16 +94,16 @@ class FinePruning():
       elif data_loader_type =="back":
          data_loader = self.backdoored_loader
       if asr:
-         acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform, self.criterion)
+         acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform)
       else:
-         acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform, self.criterion)
-      return acc,loss,att
+         acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform)
+      return acc,loss
    
    def restore_model(self):
         self.model.load_state_dict(copy.deepcopy(original_state_dict))
  
    def prune(self,layer_to_prune, layer_weight_key, prune_rate):
-      self.pruning.prune_layer(self.model, layer_to_prune, layer_weight_key, prune_rate)
+      self.pruning.prune_layer(self.model, layer_to_prune, layer_weight_key, prune_rate,self.train_loader, device=self.device)
 
    def fine_tune(self, device,transformTrain,transformTest,dataloaders_dict,feature_extract = False):
         self.fineTuning = FineTuning(device = device,
@@ -129,7 +134,7 @@ def ASR(clean_acc, backdoor_acc):
           
 if __name__ == "__main__":
     
-    loading_clean = True
+    loading_clean = False
     # Load dataset
     print("Loading data...")
     if loading_clean:
@@ -144,7 +149,7 @@ if __name__ == "__main__":
         test_images = os.path.join(POISONED_DIR, "test", POISONED_RATE, "data.npy")
         test_labels = os.path.join(POISONED_DIR, "test", POISONED_RATE, "labels.npy")
         log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
-
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     
@@ -172,7 +177,7 @@ if __name__ == "__main__":
 
     # train_dataset = TensorDataset(train_data, train_labels)
     indexed_train_dataset = IndexedDataset(train_data, train_labels)
-    tr_loader = DataLoader(
+    train_loader = DataLoader(
         # train_dataset,
         indexed_train_dataset,
         batch_size=BATCH_SIZE,
@@ -198,7 +203,7 @@ if __name__ == "__main__":
         num_workers=NUM_WORKERS,
         drop_last=True,
         pin_memory=True,
-        shuffle=False,
+        shuffle=False
     )
 
     # Isolated poisoned
@@ -220,7 +225,7 @@ if __name__ == "__main__":
     
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT] if not loading_clean else backdoored_labels
+    )[:TEST_SIZE_LIMIT] #if not loading_clean else backdoored_labels
 
     # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
     indexed_backdoored_dataset = IndexedDataset(backdoored_data, backdoored_data_labels)
@@ -241,7 +246,12 @@ if __name__ == "__main__":
     model = ResNet18()
     model.to(device)
 
-    state_dict = torch.load(WEIGHT_PATH)
+    if device == "cuda":
+        state_dict = torch.load(WEIGHT_PATH)
+    else:
+        state_dict = torch.load(WEIGHT_PATH, map_location=torch.device('cpu'))
+
+
     model.load_state_dict(state_dict["net"])
     print(state_dict["epoch"], state_dict["acc"])
 
@@ -310,7 +320,7 @@ if __name__ == "__main__":
         print(f"\nPruning layer {LAYER_KEYS[layer_idx]}: ({layer_to_prune})")
         for rate in PRUNING_RATES:
             print(f"Pruning with rate {rate}")
-            finePruning.prune_layer(layer_to_prune, layers_to_prune[layer_to_prune], rate)
+            finePruning.prune(layer_to_prune, layers_to_prune[layer_to_prune], rate)
 
             accuracy,loss = finePruning.evaluate_model(transform = transform_test, 
                                                         data_loader_type = "test"

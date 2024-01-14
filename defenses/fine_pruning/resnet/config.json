@@ -17,6 +17,7 @@
     "TEST_SIZE_LIMIT": 10000,
     "BATCH_SIZE": 128,
     "NUM_WORKERS": 1,
+    "MODEL_NAME": "resnet18",
     "LEARNING_RATE": 1e-2,
     "POISONED_RATE": "5_percent",
     "LR": 0.001,
