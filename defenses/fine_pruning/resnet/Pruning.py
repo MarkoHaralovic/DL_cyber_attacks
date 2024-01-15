@@ -425,7 +425,7 @@ if __name__ == "__main__":
             
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["resnet18", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_accuracy,
+                writer.writerow(["resnet18", rate, LAYER_KEYS[layer_idx], accuracy, backdoor_accuracy_untargeted,
                                  asr,backdoor_accuracy_targeted])
 
             # restore model parameters
