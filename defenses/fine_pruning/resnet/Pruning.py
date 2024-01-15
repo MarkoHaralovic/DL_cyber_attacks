@@ -240,7 +240,7 @@ if __name__ == "__main__":
     )[:TEST_SIZE_LIMIT] if loading_clean else backdoored_labels
 
     # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
-    backdoored_dataset = IndexedDataset(train_data, train_labels)
+    backdoored_dataset = IndexedDataset(backdoored_data, backdoored_data_labels)
     backdoored_loader = DataLoader(
         backdoored_dataset,
         batch_size=BATCH_SIZE,
