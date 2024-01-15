@@ -146,7 +146,6 @@ def ASR(clean_acc, backdoor_acc):
     
 if __name__ == "__main__":
     
-    # loading_clean = True
     # Load dataset
     print("Loading data...")
     train_images = os.path.join(CIFAR_DIR, "train","data.npy")
@@ -159,8 +158,7 @@ if __name__ == "__main__":
     train_labels_pois = os.path.join(POISONED_DIR, "train", POISONED_RATE, "labels.npy")
     test_images_pois = os.path.join(POISONED_DIR, "test", POISONED_RATE, "data.npy")
     test_labels_pois = os.path.join(POISONED_DIR, "test", POISONED_RATE, "labels.npy")
-    # log_file_pois = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
-
+   
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     
@@ -222,7 +220,6 @@ if __name__ == "__main__":
     # Test Loader For Clean Data
     indexed_test_dataset = IndexedDataset(test_data, test_labels)
     test_loader = DataLoader(
-        # test_dataset,
         indexed_test_dataset,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
