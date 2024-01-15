@@ -179,10 +179,10 @@ if __name__ == "__main__":
     train_labels = torch.tensor(cifar_10_dataset.train_labels, dtype=torch.long)[
         :TRAIN_SIZE_LIMIT
     ]
-    train_dataset = TensorDataset(train_data,train_labels)
-    # indexed_train_dataset = IndexedDataset(train_data, train_labels)
+    # train_dataset = TensorDataset(train_data,train_labels)
+    indexed_train_dataset = IndexedDataset(train_data, train_labels)
     train_loader = DataLoader(
-        train_dataset,
+        indexed_train_dataset,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
         drop_last=True,
@@ -205,10 +205,10 @@ if __name__ == "__main__":
         :TEST_SIZE_LIMIT
     ]
     
-    test_dataset = TensorDataset(test_data,test_labels)
-    # indexed_test_dataset = IndexedDataset(test_data, test_labels)
+    # test_dataset = TensorDataset(test_data,test_labels)
+    indexed_test_dataset = IndexedDataset(test_data, test_labels)
     test_loader = DataLoader(
-        test_dataset,
+        indexed_test_dataset,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
         drop_last=True,
@@ -424,7 +424,7 @@ if __name__ == "__main__":
     )
     
     print("Starting with Fine Tuning")
-    image_datasets = {'train':train_dataset,'val':test_dataset}
+    image_datasets = {'train':indexed_train_dataset,'val':indexed_test_dataset}
 
     dataloaders_dict = {'train':train_loader,'val':test_loader}
     
