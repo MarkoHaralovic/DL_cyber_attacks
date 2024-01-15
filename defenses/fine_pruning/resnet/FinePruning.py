@@ -225,7 +225,7 @@ if __name__ == "__main__":
     
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT] #if not loading_clean else backdoored_labels
+    )[:TEST_SIZE_LIMIT] if  loading_clean else backdoored_labels
 
     # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
     indexed_backdoored_dataset = IndexedDataset(backdoored_data, backdoored_data_labels)
@@ -288,15 +288,21 @@ if __name__ == "__main__":
     print(f"Original Test Accuracy: {original_accuracy}%")
     print(f"Original Test Loss: {original_loss}%")
 
+    print("---------------------------------------------------------------------------------------------------------------")
+    
     org_backdoor_accuracy,org_backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
                                                                       data_loader_type = "back"
                                                                       )
     print(f"Original Accuracy on Backdoored Data: {org_backdoor_accuracy}%")
     print(f"Original Loss on Backdoored Data: {org_backdoor_loss}%")
     
+    print("---------------------------------------------------------------------------------------------------------------")
+    
     org_asr = ASR(original_accuracy, org_backdoor_accuracy)
     print(f"Original ASR  : {org_asr}")
 
+    print("---------------------------------------------------------------------------------------------------------------")
+    
     print("\nStarting pruning")
 
     os.makedirs(CSV_PRUNING_DIR, exist_ok=True)
@@ -322,13 +328,17 @@ if __name__ == "__main__":
             print(f"Pruning with rate {rate}")
             finePruning.prune(layer_to_prune, layers_to_prune[layer_to_prune], rate)
 
+            print("---------------------------------------------------------------------------------------------------------------")
+            print("Running on clean data")
             accuracy,loss = finePruning.evaluate_model(transform = transform_test, 
                                                         data_loader_type = "test"
                                                         )
-            print("Running on clean data")
+            
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
 
+            print("---------------------------------------------------------------------------------------------------------------")
+            print("Running on poisoned data")
             backdoor_accuracy,backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
                                                                       data_loader_type = "back"
                                                                       )
@@ -336,6 +346,7 @@ if __name__ == "__main__":
             print(f"\tAccuracy {backdoor_accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {backdoor_loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
+            print("---------------------------------------------------------------------------------------------------------------")
             asr = ASR(accuracy, backdoor_accuracy)
             print(f"ASR  : {asr}")
             

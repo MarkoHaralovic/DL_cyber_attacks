@@ -146,7 +146,7 @@ def ASR(clean_acc, backdoor_acc):
     
 if __name__ == "__main__":
     
-    loading_clean = False
+    loading_clean = True
     # Load dataset
     print("Loading data...")
     if loading_clean:
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT] #if not loading_clean else backdoored_labels
+    )[:TEST_SIZE_LIMIT] if loading_clean else backdoored_labels
 
     # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
     backdoored_dataset = IndexedDataset(train_data, train_labels)
@@ -336,24 +336,24 @@ if __name__ == "__main__":
         for rate in PRUNING_RATES:
             print(f"Pruning with rate {rate}")
             pruning.prune_layer(model, layer_to_prune, layers_to_prune[layer_to_prune], rate,train_loader,device=device)
-
+            print("---------------------------------------------------------------------------------------------------------------")
+            print("Running on clean data")
+            
             accuracy,loss = pruning.evaluate_model(model,
                                                    test_loader,
                                                    device,
                                                    transform_test)
-            print("Running on clean data")
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
             print("---------------------------------------------------------------------------------------------------------------")
-            
+            print("Running on poisoned data")
 
             backdoor_accuracy,backdoor_loss = pruning.evaluate_model(model, 
                                                                     backdoored_loader, 
                                                                     device,
                                                                     transform_test)
             
-            print("Running on poisoned data")
             print(f"\tAccuracy {backdoor_accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {backdoor_loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
