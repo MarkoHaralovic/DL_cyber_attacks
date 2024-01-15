@@ -86,17 +86,19 @@ class FinePruning():
       self.criterion=nn.CrossEntropyLoss()
       self.pruning = Pruning(self.device)
       
-   def evaluate_model(self,transform, data_loader_type = "train" ,asr=False):
+   def evaluate_model(self,transform, data_loader_type = "train" ,ev_ft=False):
       if data_loader_type =="train":
          data_loader = self.train_loader
       elif data_loader_type =="test":
          data_loader = self.test_loader
       elif data_loader_type =="back":
          data_loader = self.backdoored_loader
-      if asr:
+      if not ev_ft:
          acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform)
+      elif ev_ft:
+          acc,loss = self.pruning.evaluate_model(self.model_ft, data_loader, device, transform) 
       else:
-         acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform)
+          raise Exception("Invalid Arguments")
       return acc,loss
    
    def restore_model(self):
@@ -437,19 +439,17 @@ if __name__ == "__main__":
     )
     
     print(f"Running final evaluation of fine tuned model on clean and poisoned dataset")
-    ft_accuracy, ft_loss = evaluate_model(model =fineTunedModel,
-                                          data_loader = test_loader, 
-                                          device = device,
-                                          triplet=True
-                                          )
+    ft_accuracy, ft_loss = finePruning.evaluate_model(transform = transform_test, 
+                                                        data_loader_type = "test",
+                                                        ev_ft=True
+                                                        )
     print(f"Ft Test Accuracy: {ft_accuracy}%")
     print(f"Ft Test Loss: {ft_loss}%")
 
-    ft_backdoor_accuracy,ft_backdoor_loss = evaluate_model(model =fineTunedModel,
-                                                           data_loader = backdoored_loader, 
-                                                           device = device,
-                                                            triplet=True
-                                                          )
+    ft_backdoor_accuracy,ft_backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
+                                                                      data_loader_type = "back",
+                                                                      ev_ft=True
+                                                                      )
     print(f"Ft Accuracy on Backdoored Data: {ft_backdoor_accuracy}%")
     print(f"Ft on Backdoored Data: {ft_backdoor_loss}%")
     

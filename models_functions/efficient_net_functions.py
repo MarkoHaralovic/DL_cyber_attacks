@@ -32,7 +32,7 @@ def test(model, test_loader, criterion=nn.CrossEntropyLoss()):
     )
 
 
-def evaluate_model(model, data_loader, device, criterion = nn.CrossEntropyLoss(),triplet=False):
+def evaluate_model(model, data_loader, device, criterion = nn.CrossEntropyLoss()):
     """ Efficient Net model evaluation
 
         Args:
@@ -53,29 +53,16 @@ def evaluate_model(model, data_loader, device, criterion = nn.CrossEntropyLoss()
     resize_transform = transforms.Resize((224, 224), antialias=True)
 
     with torch.no_grad():
-        if not triplet:
-            for images, labels in tqdm(data_loader):
-                # Resize images here if facing memory issues with whole dataset reshaped at once
-                images = torch.stack([resize_transform(img) for img in images])
-                images, labels = images.to(device), labels.to(device)
-                outputs = model(images)
-                loss = criterion(outputs, labels)
-                total_loss += loss.item()
-                _, predicted = torch.max(outputs, 1)
-                total_correct += (predicted == labels).sum().item()
-                total_size += labels.size(0)
-        elif triplet:
-            for images, labels, _ in tqdm(data_loader):
-                # Resize images here if facing memory issues with whole dataset reshaped at once
-                images = torch.stack([resize_transform(img) for img in images])
-                images, labels = images.to(device), labels.to(device)
-                outputs = model(images)
-                loss = criterion(outputs, labels)
-                total_loss += loss.item()
-                _, predicted = torch.max(outputs, 1)
-                total_correct += (predicted == labels).sum().item()
-                total_size += labels.size(0)
-            
+        for images, labels in tqdm(data_loader):
+            # Resize images here if facing memory issues with whole dataset reshaped at once
+            images = torch.stack([resize_transform(img) for img in images])
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+            _, predicted = torch.max(outputs, 1)
+            total_correct += (predicted == labels).sum().item()
+            total_size += labels.size(0)
 
     average_loss = total_loss / total_size
     accuracy = 100 * total_correct / total_size
