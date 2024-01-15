@@ -78,7 +78,7 @@ class FinePruning():
       self.test_loader = test_loader
       self.backdoored_loader=backdoored_loader
       self.cifar_data = cifar_data
-      self.device = device
+      self.device = torch.device(device)
       self.model = model 
       self.layers_to_prune = layers_to_prune
       self.original_state_dict = original_state_dict
@@ -241,7 +241,7 @@ if __name__ == "__main__":
             backdoored_labels.append(new_label)
 
     backdoored_data = torch.tensor(
-        cifar_10_dataset.test_images[backdoored_indices], dtype=torch.float32
+        cifar_10_dataset_pois.test_images[backdoored_indices], dtype=torch.float32
     ).permute(0, 3, 1, 2)[:TEST_SIZE_LIMIT]
     
     backdoored_data_labels = torch.tensor(
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     model = ResNet18()
     model.to(device)
 
-    if device == "cuda":
+    if device.type == "cuda":
         state_dict = torch.load(WEIGHT_PATH)
     else:
         state_dict = torch.load(WEIGHT_PATH, map_location=torch.device('cpu'))
@@ -303,7 +303,7 @@ if __name__ == "__main__":
        model = model,
        layers_to_prune = layers_to_prune,
        original_state_dict = original_state_dict,
-       device="cpu")
+       device="cuda")
     
     original_accuracy, original_loss = finePruning.evaluate_model(transform = transform_test, 
                                                                   data_loader_type = "test" 
@@ -381,22 +381,22 @@ if __name__ == "__main__":
 
     print("\nDone")
     
-    pruning_accuracy, pruning_loss = finePruning.evaluate_model(
-                                                                transform = transform_test, 
-                                                                data_loader_type = "test" ,
-                                                                )
-    print(f"After Pruning  Test Accuracy on Clean Data: {pruning_accuracy}%")
-    print(f"After Pruning  Test Loss on Clean Data: {pruning_loss}%")
+    # pruning_accuracy, pruning_loss = finePruning.evaluate_model(
+    #                                                             transform = transform_test, 
+    #                                                             data_loader_type = "test" ,
+    #                                                             )
+    # print(f"After Pruning  Test Accuracy on Clean Data: {pruning_accuracy}%")
+    # print(f"After Pruning  Test Loss on Clean Data: {pruning_loss}%")
     
-    print("Running on poisoned data")
-    backdoor_accuracy,backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
-                                                                      data_loader_type = "back"
-                                                                      )
-    print(f"\tAccuracy on Poisoned Data {backdoor_accuracy}")
-    print(f"Test Loss on Poisoned Data: {backdoor_loss}")
+    # print("Running on poisoned data")
+    # backdoor_accuracy,backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
+    #                                                                   data_loader_type = "back"
+    #                                                                   )
+    # print(f"\tAccuracy on Poisoned Data {backdoor_accuracy}")
+    # print(f"Test Loss on Poisoned Data: {backdoor_loss}")
             
-    asr = ASR(pruning_accuracy, backdoor_accuracy)
-    print(f"Final ASR after Pruning  : {asr}")
+    # asr = ASR(pruning_accuracy, backdoor_accuracy)
+    # print(f"Final ASR after Pruning  : {asr}")
 
     mean, std = [0.4914, 0.4822, 0.4465], [0.247, 0.243, 0.261]
     img_size=224

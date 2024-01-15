@@ -46,7 +46,7 @@ NUM_WORKERS = config['NUM_WORKERS']
 
 class FineTuning():
    def __init__(self,device = 'cpu', transformTrain = None, transformTest = None,dataloaders_dict=None, feature_extract = False):
-      self.device = device 
+      self.device = device
       self.transformTrain = transformTrain
       self.transformTest = transformTest
       self.dataloaders_dict = dataloaders_dict
@@ -56,7 +56,7 @@ class FineTuning():
       
    def train_model(self, num_epochs=25):
       since = time.time()
-      val_acc_history = []
+      self.val_acc_history = []
     
       best_model_wts = copy.deepcopy(self.model.state_dict())
       best_acc = 0.0
@@ -75,10 +75,10 @@ class FineTuning():
                running_corrects = 0
 
                # Iterate over data.
-               for inputs, labels in self.dataloaders_dict[phase]:
+               for inputs, labels ,_ in self.dataloaders_dict[phase]:
                   # labels= labels.sub(labels,1)
-                  inputs = inputs.to(device)
-                  labels = labels.to(device)
+                  inputs = inputs.to(self.device)
+                  labels = labels.to(self.device)
 
                   # zero the parameter gradients
                   self.optimizer.zero_grad()
@@ -109,9 +109,9 @@ class FineTuning():
                # deep copy the model
                if phase == 'val' and epoch_acc > best_acc:
                   best_acc = epoch_acc
-                  best_model_wts = copy.deepcopy(model.state_dict())
+                  best_model_wts = copy.deepcopy(self.model.state_dict())
                if phase == 'val':
-                  val_acc_history.append(epoch_acc)
+                  self.val_acc_history.append(epoch_acc)
 
          print()
 
