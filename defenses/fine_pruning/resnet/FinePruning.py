@@ -96,6 +96,8 @@ class FinePruning():
          data_loader = self.backdoored_loader_targeted
       elif data_loader_type =="untargeted":
          data_loader = self.backdoored_loader_untargeted
+      else:
+          raise Exception(f"Invalid Arguments, you sent data_loader_type : {data_loader_type}")
       if not ev_ft:
          acc,loss = self.pruning.evaluate_model(self.model, data_loader, device, transform)
       elif ev_ft:
