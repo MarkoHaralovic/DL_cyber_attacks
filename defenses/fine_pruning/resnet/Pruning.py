@@ -335,7 +335,7 @@ if __name__ == "__main__":
     
     print("---------------------------------------------------------------------------------------------------------------")
     
-    org_asr = ASR(original_accuracy, org_backdoor_accuracy)
+    org_asr = ASR(original_accuracy, original_backdoor_accuracy)
     print(f"Original ASR  : {org_asr}")
 
     print("---------------------------------------------------------------------------------------------------------------")
