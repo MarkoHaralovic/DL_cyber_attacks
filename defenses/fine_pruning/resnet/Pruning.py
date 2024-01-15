@@ -250,7 +250,7 @@ if __name__ == "__main__":
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
     ) # use clean labels for evaluation
 
-    backdoored_data_labels_untargeted = torch.tensor(
+    backdoored_data_labels_targeted = torch.tensor(
         cifar_10_dataset_pois.test_labels[backdoored_indices], dtype=torch.long
     ) # use clean labels for evaluation
     
