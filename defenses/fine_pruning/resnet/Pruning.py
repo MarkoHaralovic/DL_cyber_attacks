@@ -237,7 +237,7 @@ if __name__ == "__main__":
     
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT] if not loading_clean else backdoored_labels
+    )[:TEST_SIZE_LIMIT] #if not loading_clean else backdoored_labels
 
     # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
     backdoored_dataset = IndexedDataset(train_data, train_labels)
@@ -284,6 +284,8 @@ if __name__ == "__main__":
     for layer_to_prune, _ in layers_to_prune.items():
         print("\tLayer to prune:", layer_to_prune)
         print("\tWeights shape:", layer_to_prune.weight.size())
+        
+    print("---------------------------------------------------------------------------------------------------------------")
 
     # original state of the model to go back to after pruning a layer in the following iteration
     original_state_dict = copy.deepcopy(model.state_dict())
@@ -297,12 +299,18 @@ if __name__ == "__main__":
     print(f"Original Test Accuracy: {original_accuracy}%")
     print(f"Original Test Loss: {original_loss}%")
     
+    print("---------------------------------------------------------------------------------------------------------------")
+    
+    
     original_backdoor_accuracy, original_backdoor_loss= pruning.evaluate_model(model, 
                                                                                backdoored_loader, 
                                                                                device,
                                                                                transform_test)
     print(f"Original Accuracy on Backdoored Data: {original_backdoor_accuracy}%")
     print(f"Original Loss on Backdoored Data: {original_backdoor_loss}%")
+    
+    print("---------------------------------------------------------------------------------------------------------------")
+    
 
     print("\nStarting pruning")
 
@@ -336,6 +344,9 @@ if __name__ == "__main__":
             print("Running on clean data")
             print(f"\tAccuracy {accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            
+            print("---------------------------------------------------------------------------------------------------------------")
+            
 
             backdoor_accuracy,backdoor_loss = pruning.evaluate_model(model, 
                                                                     backdoored_loader, 
@@ -346,8 +357,14 @@ if __name__ == "__main__":
             print(f"\tAccuracy {backdoor_accuracy} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {backdoor_loss} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
+            print("---------------------------------------------------------------------------------------------------------------")
+            
+            
             asr = ASR(accuracy, backdoor_accuracy)
             print(f"Attack Success: {asr} for {LAYER_KEYS[layer_idx]} and rate {rate}")
+            
+            print("---------------------------------------------------------------------------------------------------------------")
+            
             
             with open(csv_file_path, mode="a", newline="") as file:
                 writer = csv.writer(file)
