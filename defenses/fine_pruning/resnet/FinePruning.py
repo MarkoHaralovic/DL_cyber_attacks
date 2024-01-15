@@ -136,7 +136,6 @@ def ASR(clean_acc, backdoor_acc):
           
 if __name__ == "__main__":
     
-
     # Load dataset
     print("Loading data...")
     train_images = os.path.join(CIFAR_DIR, "train","data.npy")
