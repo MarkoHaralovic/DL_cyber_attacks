@@ -439,14 +439,16 @@ if __name__ == "__main__":
     print(f"Running final evaluation of fine tuned model on clean and poisoned dataset")
     ft_accuracy, ft_loss = evaluate_model(model =fineTunedModel,
                                           data_loader = test_loader, 
-                                          device = device
+                                          device = device,
+                                          triplet=True
                                           )
     print(f"Ft Test Accuracy: {ft_accuracy}%")
     print(f"Ft Test Loss: {ft_loss}%")
 
     ft_backdoor_accuracy,ft_backdoor_loss = evaluate_model(model =fineTunedModel,
                                                            data_loader = backdoored_loader, 
-                                                           device = device
+                                                           device = device,
+                                                            triplet=True
                                                           )
     print(f"Ft Accuracy on Backdoored Data: {ft_backdoor_accuracy}%")
     print(f"Ft on Backdoored Data: {ft_backdoor_loss}%")
