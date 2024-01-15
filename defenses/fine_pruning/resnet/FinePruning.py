@@ -215,7 +215,7 @@ if __name__ == "__main__":
         backdoored_labels = []
         for row in reader:
             index = int(row[0])
-            new_label = int(row[2].split()[1].strip('()'))  
+            new_label = int(row[1].split()[1].strip('()'))  
             backdoored_indices.append(index)
             backdoored_labels.append(new_label)
 
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT] if  loading_clean else backdoored_labels
+    )[:TEST_SIZE_LIMIT] if loading_clean else backdoored_labels
 
     # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
     indexed_backdoored_dataset = IndexedDataset(backdoored_data, backdoored_data_labels)

@@ -146,21 +146,20 @@ def ASR(clean_acc, backdoor_acc):
     
 if __name__ == "__main__":
     
-    loading_clean = True
+    # loading_clean = True
     # Load dataset
     print("Loading data...")
-    if loading_clean:
-        train_images = os.path.join(CIFAR_DIR, "train","data.npy")
-        train_labels = os.path.join(CIFAR_DIR, "train",  "labels.npy")
-        test_images = os.path.join(CIFAR_DIR, "test",  "data.npy")
-        test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
-        log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
-    else:
-        train_images = os.path.join(POISONED_DIR, "train", POISONED_RATE, "data.npy")
-        train_labels = os.path.join(POISONED_DIR, "train", POISONED_RATE, "labels.npy")
-        test_images = os.path.join(POISONED_DIR, "test", POISONED_RATE, "data.npy")
-        test_labels = os.path.join(POISONED_DIR, "test", POISONED_RATE, "labels.npy")
-        log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
+    train_images = os.path.join(CIFAR_DIR, "train","data.npy")
+    train_labels = os.path.join(CIFAR_DIR, "train",  "labels.npy")
+    test_images = os.path.join(CIFAR_DIR, "test",  "data.npy")
+    test_labels = os.path.join(CIFAR_DIR, "test", "labels.npy")
+    log_file = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
+
+    train_images_pois = os.path.join(POISONED_DIR, "train", POISONED_RATE, "data.npy")
+    train_labels_pois = os.path.join(POISONED_DIR, "train", POISONED_RATE, "labels.npy")
+    test_images_pois = os.path.join(POISONED_DIR, "test", POISONED_RATE, "data.npy")
+    test_labels_pois = os.path.join(POISONED_DIR, "test", POISONED_RATE, "labels.npy")
+    # log_file_pois = os.path.join(POISONED_DIR, "test", POISONED_RATE, "log.csv")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -169,7 +168,13 @@ if __name__ == "__main__":
         train_images=train_images,
         train_labels=train_labels,
         test_images=test_images,
-        test_labels=test_labels,
+        test_labels=test_labels
+    )
+    cifar_10_dataset_pois = Data(
+        train_images=train_images_pois,
+        train_labels=train_labels_pois,
+        test_images=test_images_pois,
+        test_labels=test_labels_pois
     )
 
     transform_test = transforms.Compose(
@@ -205,12 +210,31 @@ if __name__ == "__main__":
     test_labels = torch.tensor(cifar_10_dataset.test_labels, dtype=torch.long)[
         :TEST_SIZE_LIMIT
     ]
+    
+    # Test Poisoned Dataset
+    test_data_pois = torch.tensor(cifar_10_dataset_pois.test_images, dtype=torch.float32).permute(
+        0, 3, 1, 2
+    )[:TEST_SIZE_LIMIT]
+    test_labels_pois = torch.tensor(cifar_10_dataset_pois.test_labels, dtype=torch.long)[
+        :TEST_SIZE_LIMIT
+    ]
 
-    # test_dataset = TensorDataset(test_data, test_labels)
+    # Test Loader For Clean Data
     indexed_test_dataset = IndexedDataset(test_data, test_labels)
     test_loader = DataLoader(
         # test_dataset,
         indexed_test_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        drop_last=True,
+        pin_memory=True,
+        shuffle=False
+    )
+    
+    # Test Loader For Poisoned Data
+    indexed_test_dataset_pois = IndexedDataset(test_data_pois, test_labels_pois)
+    test_loader_pois = DataLoader(
+        indexed_test_dataset_pois,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
         drop_last=True,
@@ -232,14 +256,14 @@ if __name__ == "__main__":
             backdoored_labels.append(new_label)
 
     backdoored_data = torch.tensor(
-        cifar_10_dataset.test_images[backdoored_indices], dtype=torch.float32
+        cifar_10_dataset_pois.test_images[backdoored_indices], dtype=torch.float32
     ).permute(0, 3, 1, 2)[:TEST_SIZE_LIMIT]
     
     backdoored_data_labels = torch.tensor(
         cifar_10_dataset.test_labels[backdoored_indices], dtype=torch.long
-    )[:TEST_SIZE_LIMIT] if loading_clean else backdoored_labels
+    )[:TEST_SIZE_LIMIT] # use clean labels for evaluation
 
-    # backdoored_dataset = TensorDataset(backdoored_data, backdoored_data_labels)
+
     backdoored_dataset = IndexedDataset(backdoored_data, backdoored_data_labels)
     backdoored_loader = DataLoader(
         backdoored_dataset,
@@ -293,7 +317,7 @@ if __name__ == "__main__":
     pruning = Pruning(device)
     
     original_accuracy, original_loss= pruning.evaluate_model(model, 
-                                                            test_loader,
+                                                            test_loader, #clean input, clean targets
                                                             device,
                                                             transform_test)
     print(f"Original Test Accuracy: {original_accuracy}%")
@@ -303,7 +327,7 @@ if __name__ == "__main__":
     
     
     original_backdoor_accuracy, original_backdoor_loss= pruning.evaluate_model(model, 
-                                                                               backdoored_loader, 
+                                                                               backdoored_loader, # poisoned dataset, clean targets
                                                                                device,
                                                                                transform_test)
     print(f"Original Accuracy on Backdoored Data: {original_backdoor_accuracy}%")
@@ -374,11 +398,4 @@ if __name__ == "__main__":
             model.load_state_dict(copy.deepcopy(original_state_dict))
 
     print("\nDone")
-    
-    pruning_accuracy, pruning_loss = pruning.evaluate_model(model, 
-                                                            test_loader,
-                                                            device,
-                                                            transform_test,
-                                                            )
-    print(f"After Pruning  Test Accuracy: {pruning_accuracy}%")
-    print(f"After Pruning  Test Loss: {pruning_loss}%")
+
