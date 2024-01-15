@@ -308,7 +308,8 @@ if __name__ == "__main__":
     finePruning = FinePruning(
        train_loader = train_loader,
        test_loader = test_loader,
-       backdoored_loader = backdoored_loader_untargeted,
+       backdoored_loader_untargeted = backdoored_loader_untargeted,
+       backdoored_loader_targeted = backdoored_loader_targeted,
        cifar_data  = cifar_10_dataset,
        model = model,
        layers_to_prune = layers_to_prune,
