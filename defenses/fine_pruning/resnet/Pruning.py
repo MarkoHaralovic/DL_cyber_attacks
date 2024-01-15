@@ -111,7 +111,7 @@ class Pruning():
 
             model.eval()
             for data, _ , _ in tqdm(train_loader, desc="Collecting layer outputs"):
-                if device == "cuda":
+                if device.type == "cuda":
                     model(data.cuda())
                 else:
                     model(data)
