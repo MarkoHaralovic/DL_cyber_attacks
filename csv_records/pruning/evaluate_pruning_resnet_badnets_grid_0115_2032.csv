@@ -1,0 +1,1 @@
+model_name,pruning_rate,layer_name,accuracy,attack_success_rate_untargeted,attack_success_rate_targeted

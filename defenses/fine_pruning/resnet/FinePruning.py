@@ -386,7 +386,7 @@ if __name__ == "__main__":
             backdoor_accuracy_untargeted,backdoor_loss_untargeted = finePruning.evaluate_model(transform = transform_test, 
                                                                       data_loader_type = "untargeted"
                                                                       )
-            print("Running on poisoned data")
+            
             print(f"\tAccuracy {backdoor_accuracy_untargeted} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             print(f"Test Loss: {backdoor_loss_untargeted} for {LAYER_KEYS[layer_idx]} and rate {rate}")
             
@@ -450,16 +450,33 @@ if __name__ == "__main__":
                                                         )
     print(f"Ft Test Accuracy: {ft_accuracy}%")
     print(f"Ft Test Loss: {ft_loss}%")
+    
+    print("---------------------------------------------------------------------------------------------------------------")
+    print("Running on poisoned data")
 
-    ft_backdoor_accuracy,ft_backdoor_loss = finePruning.evaluate_model(transform = transform_test, 
-                                                                      data_loader_type = "back",
+    ft_backdoor_accuracy_untargeted,ft_backdoor_loss_untargeted = finePruning.evaluate_model(transform = transform_test, 
+                                                                      data_loader_type = "untargeted",
                                                                       ev_ft=True
                                                                       )
-    print(f"Ft Accuracy on Backdoored Data: {ft_backdoor_accuracy}%")
-    print(f"Ft Loss on Backdoored Data: {ft_backdoor_loss}%")
+    print(f"Ft Untargeted Accuracy on Backdoored Data: {ft_backdoor_accuracy_untargeted}%")
+    print(f"Ft Untargeted Loss on Backdoored Data: {ft_backdoor_loss_untargeted}%")
     
-    ft_asr = ASR(ft_accuracy, ft_backdoor_accuracy)
+    print("---------------------------------------------------------------------------------------------------------------")
+    
+    ft_asr = ASR(ft_accuracy, ft_backdoor_accuracy_untargeted)
     print(f"Ft ASR  : {ft_asr}")
     
+    print("---------------------------------------------------------------------------------------------------------------")
     
     
+    ft_backdoor_accuracy_targeted,ft_backdoor_loss_targeted = finePruning.evaluate_model(transform = transform_test, 
+                                                                      data_loader_type = "targeted",
+                                                                      ev_ft=True
+                                                                      )
+    print(f"Ft Targeted Accuracy on Backdoored Data: {ft_backdoor_accuracy_targeted}%")
+    print(f"Ft Targeted Loss on Backdoored Data: {ft_backdoor_loss_targeted}%")
+    
+    print("---------------------------------------------------------------------------------------------------------------")
+    
+    print(f"Ft ASR  : {ft_backdoor_accuracy_targeted}")
+            
