@@ -428,7 +428,7 @@ if __name__ == "__main__":
 
     dataloaders_dict = {'train':train_loader,'val':test_loader}
     
-    fineTunedModel  = FinePruning.fineTune(
+    fineTunedModel  = finePruning.fine_tune(
         device = device,
         transformTrain = transformTrain, 
         transformTest = transformTest,
