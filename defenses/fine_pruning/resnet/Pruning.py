@@ -399,13 +399,13 @@ if __name__ == "__main__":
                                                                                backdoored_loader_untargeted, # poisoned dataset, clean targets
                                                                                device,
                                                                                transform_test)
-            print(f"Original Accuracy on Backdoored Data (Untargeted): {backdoor_accuracy_untargeted}%")
-            print(f"Original Loss on Backdoored Data (Untargeted) : {backdoor_loss_untargeted}%")
+            print(f"Accuracy on Backdoored Data (Untargeted): {backdoor_accuracy_untargeted}%")
+            print(f"Loss on Backdoored Data (Untargeted) : {backdoor_loss_untargeted}%")
             
             print("---------------------------------------------------------------------------------------------------------------")
             
             asr = ASR(original_accuracy, backdoor_accuracy_untargeted)
-            print(f"Original Untargeted ASR  : {org_asr}")
+            print(f"Untargeted ASR  : {org_asr}")
 
             print("---------------------------------------------------------------------------------------------------------------")
             
@@ -413,8 +413,8 @@ if __name__ == "__main__":
                                                                                     backdoored_loader_targeted, # poisoned dataset, clean targets
                                                                                     device,
                                                                                     transform_test)
-            print(f"Original Accuracy on Backdoored Data (Targeted): {backdoor_accuracy_targeted}%")
-            print(f"Original Loss on Backdoored Data (Targeted) : {backdoor_loss_targeted}%")
+            print(f"Accuracy on Backdoored Data (Targeted): {backdoor_accuracy_targeted}%")
+            print(f"Loss on Backdoored Data (Targeted) : {backdoor_loss_targeted}%")
             
             print("---------------------------------------------------------------------------------------------------------------")
 
