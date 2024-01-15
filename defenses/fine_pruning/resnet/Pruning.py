@@ -266,7 +266,7 @@ if __name__ == "__main__":
     )
     """ Posioned Data and Poisoned  Labels """
     
-    backdoored_dataset_targeted = IndexedDataset(backdoored_data, backdoored_data_labels_untargeted)
+    backdoored_dataset_targeted = IndexedDataset(backdoored_data, backdoored_data_labels_targeted)
     backdoored_loader_targeted = DataLoader(
         backdoored_dataset_targeted,
         batch_size=BATCH_SIZE,
