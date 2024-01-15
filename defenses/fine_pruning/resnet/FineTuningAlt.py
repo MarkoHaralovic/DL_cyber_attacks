@@ -127,12 +127,16 @@ class FineTuning():
       if feature_extracting:
          for param in model.parameters():
             param.requires_grad = False
-   def init_model(self):
-      self.model = ResNet18()
-      self.model = self.model.to(self.device)
+   def init_model(self, model = None):
+      if model == None:
+         self.model = ResNet18()
+         self.model = self.model.to(self.device)
+      else:
+         self.model = model 
+         self.model = self.model.to(self.device)
    
-   def prepare_params(self):
-      self.init_model()
+   def prepare_params(self,model=None):
+      self.init_model(model)
       params_to_update = self.model.parameters()
 
       print("Params to learn:")

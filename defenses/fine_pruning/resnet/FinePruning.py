@@ -112,7 +112,7 @@ class FinePruning():
                                      dataloaders_dict = dataloaders_dict,
                                      feature_extract = False
                                      )
-        self.fineTuning.prepare_params()
+        self.fineTuning.prepare_params(self.model)
         self.model_ft, self.hist = self.fineTuning.train_model(num_epochs=EPOCHS)
         
         return self.model_ft
