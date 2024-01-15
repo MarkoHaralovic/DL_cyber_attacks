@@ -75,7 +75,7 @@ class FineTuning():
                running_corrects = 0
 
                # Iterate over data.
-               for inputs, labels in dataloaders_dict[phase]:
+               for inputs, labels in self.dataloaders_dict[phase]:
                   # labels= labels.sub(labels,1)
                   inputs = inputs.to(device)
                   labels = labels.to(device)
@@ -101,8 +101,8 @@ class FineTuning():
                   running_loss += loss.item() * inputs.size(0)
                   running_corrects += torch.sum(preds == labels.data)
 
-               epoch_loss = running_loss / len(dataloaders_dict[phase].dataset)
-               epoch_acc = running_corrects.double() / len(dataloaders_dict[phase].dataset)
+               epoch_loss = running_loss / len(self.dataloaders_dict[phase].dataset)
+               epoch_acc = running_corrects.double() / len(self.dataloaders_dict[phase].dataset)
 
                print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
