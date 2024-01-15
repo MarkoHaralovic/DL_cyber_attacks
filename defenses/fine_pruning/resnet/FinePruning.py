@@ -400,22 +400,15 @@ if __name__ == "__main__":
     # asr = ASR(pruning_accuracy, backdoor_accuracy)
     # print(f"Final ASR after Pruning  : {asr}")
 
-    mean, std = [0.4914, 0.4822, 0.4465], [0.247, 0.243, 0.261]
-    img_size=224
-    crop_size = 224
+
     transformTrain = transforms.Compose(
         [
-        transforms.Resize(img_size),#, interpolation=torchvision.transforms.InterpolationMode.BICUBIC),
-        #transforms.CenterCrop(crop_size),
-        transforms.RandomRotation(20),
-        transforms.RandomHorizontalFlip(0.1),
-        transforms.ColorJitter(brightness=0.1,contrast = 0.1 ,saturation =0.1 ),
-        transforms.RandomAdjustSharpness(sharpness_factor = 2, p = 0.1),
-        transforms.ToTensor(),
-        transforms.Normalize(mean,std),
-        transforms.RandomErasing(p=0.75,scale=(0.02, 0.1),value=1.0, inplace=False)
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            # transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ]
-        )
+    )
 
     transformTest = transforms.Compose(
     [
@@ -451,7 +444,7 @@ if __name__ == "__main__":
                                                                       ev_ft=True
                                                                       )
     print(f"Ft Accuracy on Backdoored Data: {ft_backdoor_accuracy}%")
-    print(f"Ft on Backdoored Data: {ft_backdoor_loss}%")
+    print(f"Ft Loss on Backdoored Data: {ft_backdoor_loss}%")
     
     ft_asr = ASR(ft_accuracy, ft_backdoor_accuracy)
     print(f"Ft ASR  : {ft_asr}")

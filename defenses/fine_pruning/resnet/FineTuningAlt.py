@@ -78,6 +78,12 @@ class FineTuning():
                for inputs, labels ,_ in self.dataloaders_dict[phase]:
                   # labels= labels.sub(labels,1)
                   inputs = inputs.to(self.device)
+                  
+                  if phase == 'train' and self.transformTrain != None:
+                     inputs = self.transformTrain(inputs)
+                  elif phase == 'val' and self.transformTest != None:
+                     inputs = self.transformTest(inputs)
+                     
                   labels = labels.to(self.device)
 
                   # zero the parameter gradients
