@@ -21,6 +21,7 @@ from torchsummary import summary
 
 import time
 import sys
+import os
 
 from Data import Data
 from auxiliary import format_time
@@ -31,12 +32,27 @@ from efficient_net_functions import test,train,evaluate_model,_train,load_model
 print(torch.__version__) 
 print(torchvision.__version__) 
 
-train_images = "..\\datasets\\CIFAR10\\cifar-10\\train\\data.npy"
-train_labels = "..\\datasets\\CIFAR10\\cifar-10\\train\\labels.npy"
-test_images = "..\\datasets\\CIFAR10\\cifar-10\\test\\data.npy"
-test_labels = "..\\datasets\\CIFAR10\\cifar-10\\test\\labels.npy"
 weight_path = "..\\models\\efficientnet_v2_s_cifar10.pth"
 model_name = 'efficientnet_v2_s'
+
+CLEAN = True
+CLEAN_DIR = "../datasets/CIFAR10/cifar-10"
+ATTACK  = "BADNETS"
+POISONED_DIR = "../datasets/badnets_grid"
+POISONED_RATE = "5_percent"
+
+if CLEAN:
+    train_images = os.path.join(CLEAN_DIR, "train", "data.npy")
+    train_labels = os.path.join(CLEAN_DIR, "train", "labels.npy")
+    test_images = os.path.join(CLEAN_DIR, "test", "data.npy")
+    test_labels = os.path.join(CLEAN_DIR, "test", "labels.npy")
+elif ATTACK == "BADNETS" or ATTACK == "DATA_POISONING":
+    train_images = os.path.join(POISONED_DIR, "train", POISONED_RATE, "data.npy")
+    train_labels = os.path.join(POISONED_DIR, "train", POISONED_RATE, "labels.npy")
+    test_images = os.path.join(POISONED_DIR, "test", POISONED_RATE, "data.npy")
+    test_labels = os.path.join(POISONED_DIR, "test", POISONED_RATE, "labels.npy")
+else:
+    raise Exception("ATTACK not recognized")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)

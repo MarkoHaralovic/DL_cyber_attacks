@@ -22,9 +22,9 @@ def load_cifar10_batch(batch):
     
     return data, labels
 
-cifar_10_dataset_dir = "datasets/CIFAR10/cifar-10-batches-py"
-train_output_dir = "datasets/CIFAR10/cifar-10/train"
-test_output_dir = "datasets/CIFAR10/cifar-10/test"
+cifar_10_dataset_dir = r"../datasets/CIFAR10/cifar-10-batches-py"
+train_output_dir = r"../datasets/CIFAR10/cifar-10/train"
+test_output_dir = r"../datasets/CIFAR10/cifar-10/test"
 
 os.makedirs(train_output_dir, exist_ok=True)
 os.makedirs(test_output_dir, exist_ok=True)

@@ -11,7 +11,7 @@ sys.path.append("../")
 from PoisonedCIFAR10 import PoisonedCIFAR10
 # from attacks.PoisonedCIFAR10 import PoisonedCIFAR10
 import os
-
+import random
 import ssl
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -122,16 +122,20 @@ if __name__ == "__main__":
 
     # uncomment to show 10 sample images
     ################################
-    # for _ in range(10):
-    #     index = random.randint(0, poisoned_dataset.total_num - 1)  # all data
-    #     index = random.choice(list(poisoned_dataset.poisoned_indices))  # poisoned data only
-    #
-    #     img, target = poisoned_dataset[index]
-    #     plt.imshow(img)
-    #     plt.title(f"original class: {classes[target]}, new class: {poisoned_image_class}")
-    #     plt.show()
+    # _, axs = plt.subplots(5, 2, figsize = (10, 6))
+    # for i in range(5):
+    #    for j in range(2):
+    #        index = random.choice(list(poisoned_dataset.poisoned_indices))
+    #        img, target = poisoned_dataset[index]
+    #        axs[i, j].axis('off')
+    #        axs[i, j].imshow(img)
+    #        axs[i, j].set_title(f"Original class: {classes[poisoned_dataset.targets[index]]}, New class: {poisoned_image_class}")
+    # plt.tight_layout()
+    # plt.show()
+
     ################################
     # uncomment to save poisoned model (warning: cpu/ram intensive!)
     ################################
-    poisoned_dataset.save(os.path.join("..", "..", "datasets", "CIFAR10", "cifar-10", "bad_nets", "train"))
+    # poisoned_dataset.save(os.path.join("..", "..", "datasets", "badnets_grid", "train"))
     ################################
+    
