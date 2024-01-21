@@ -1,0 +1,8 @@
+model_path,accuraccy_clean,untargeted_attack_success_rate,targeted_attack_success_rate
+../../../models/pruning/resnet_badnets_grid_export_pruned_30_0120_2104.pth,89.82371794871794,0.8144513826940232,92.1875
+../../../models/pruning/resnet_badnets_grid_export_pruned_60_0120_2104.pth,89.34294871794872,0.8251121076233183,92.70833333333333
+../../../models/pruning/resnet_badnets_grid_export_pruned_80_0120_2104.pth,89.54326923076923,0.7527964205816555,86.19791666666667
+../../../models/pruning/resnet_badnets_square_export_pruned_40_0120_2111.pth,89.89383012820512,0.6262952646239555,73.95833333333333
+../../../models/pruning/resnet_badnets_square_export_pruned_70_0120_2111.pth,89.78365384615384,0.50111557340473,61.979166666666664
+../../../models/pruning/resnet_badnets_square_export_pruned_90_0120_2111.pth,89.5733173076923,0.4883148831488314,60.677083333333336
+../../../models/pruning/resnet_blend_export_pruned_80_0120_2119.pth,89.39302884615384,0.04448179271708674,9.114583333333334

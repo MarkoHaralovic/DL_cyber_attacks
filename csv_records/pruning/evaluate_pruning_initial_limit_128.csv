@@ -1,6 +1,0 @@
-model_name,pruning_rate,layer_name,accuracy
-model,0.0,blocks.39.block.depth_wise.0,92.28333333333333
-model,0.1,blocks.39.block.depth_wise.0,92.31666666666666
-model,0.2,blocks.39.block.depth_wise.0,92.35
-model,0.3,blocks.39.block.depth_wise.0,92.28333333333333
-model,0.4,blocks.39.block.depth_wise.0,92.2
