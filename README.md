@@ -40,20 +40,40 @@ to install requirements to run this project locally
 
 ## Running Experiments
 
+### Model training
+
+To train Resnet 18 model, position yourself in the /notebooks folder. In resnet18_train.py set CLEAN to True to train on clean dataset, or to False to train on poisoned dataset, and if doing later, please set the paths to the /datasets folder containing desired poisoned training data. 
+
+Start training Resnet with command:
+
+```bash
+python resnet18_train.py
+```
+
+To train Efficient Net B0 model, position yourself in the /notebooks folder and repeat process as for Resnet training in notebook efficientnet_v2_cifar10.py, and run command
+
+```bash
+python efficientnet_v2_cifar10.py
+```
+
 ### Fine Pruning
 
-After creating the poisoned dataset, with either one of the attacks (data poisoning or bad nets), position yourself in folder DL_cyber_attacks\defenses\fine_pruning\efficientNet to fine-tune Resnet 18 model or in DL_cyber_attacks\defenses\fine_pruning\efficientNet to fine-prune EfficientNet.
+After creating the poisoned dataset, with either one of the attacks (data poisoning or bad nets), position yourself in folder DL_cyber_attacks\defenses\fine_pruning\efficientNet to fine-tune EfficientNet or in DL_cyber_attacks\defenses\fine_pruning\resnet to fine-prune Resnet 18 model.
 
 In config.json, modify the  weight path to the location of the weights file of a model you want to prune and tune. Define the pruning rates, or leave as is to conduct experiment for all rates. Specify which layer to prune in 'layer_keys', or leave as is to incrementally prune all sub-layers in the last layer. Define the batch size for testing, based on your memory availability, and set the learning rate for the fine tuning.
 
 Then, run the following command :
 
+```bash
 python Pruning.py
+```
 
 In this process, only csv records will be updated. These contain information about the layer, prune rates, accuracy, and both targeted and untargeted attack success rates.
 
 Based on the results of the pruning, decide for a prune rate and the layer to prune, modify those parameters in config.json and run the following command:
 
+```bash
 python FinePruning.py
+```
 
 Pruned and tuned model will be saved on location DL_cyber_attacks\models.
