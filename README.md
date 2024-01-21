@@ -39,3 +39,21 @@ The dataset is divided into five training batches and one test batch, each with 
 
 All dependencies are provided in requirements.txt. Run command pip install -r requirements.txt 
 to install requirements to run this project locally
+
+## Running Experiments
+
+### Fine Pruning
+
+After creating the poisoned dataset, with either one of the attacks (data poisoning or bad nets), position yourself in folder DL_cyber_attacks\defenses\fine_pruning\efficientNet to fine-tune Resnet 18 model or in DL_cyber_attacks\defenses\fine_pruning\efficientNet to fine-prune EfficientNet.
+
+In config.json, modify the  weight path to the location of the weights file of a model you want to prune and tune. Define the pruning rates, or leave as is to conduct experiment for all rates. Specify which layer to prune in 'layer_keys', or leave as is to incrementally prune all sub-layers in the last layer. Define the batch size for testing, based on your memory availability, and set the learning rate for the fine tuning.
+
+Then, run the following command :
+   python Pruning.py
+
+In this process, only csv records will be updated. These contain information about the layer, prune rates, accuracy, and both targeted and untargeted attack success rates.
+
+Based on the results of the pruning, decide for a prune rate and the layer to prune, modify those parameters in config.json and run the following command:
+   python FinePruning.py
+
+Pruned and tuned model will be saved on location DL_cyber_attacks\models.

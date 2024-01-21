@@ -479,4 +479,19 @@ if __name__ == "__main__":
     print("---------------------------------------------------------------------------------------------------------------")
     
     print(f"Ft ASR  : {ft_backdoor_accuracy_targeted}")
+    
+    """"Saving the model."""
+    base_dir="../../../models"
+    model_name="resnet18_ft"
+
+    os.makedirs(base_dir, exist_ok=True)
+
+    filename = f"{model_name}_{ft_accuracy:.2f}_{ft_asr:.2f}.pth"  
+
+    save_path = os.path.join(base_dir, filename)
+
+    torch.save(fineTunedModel.state_dict(), save_path)
+    print(f"Model saved to {save_path}")
+    
+
             
