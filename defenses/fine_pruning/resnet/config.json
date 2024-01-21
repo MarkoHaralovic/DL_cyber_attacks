@@ -5,7 +5,7 @@
     "CIFAR_DIR": "CIFAR10/cifar-10",
     "POISONED_DIR": "badnets_grid",
     "WEIGHT_PATH": "../../../models/badnets/resnet18_ckpt_grid_05_percent.pth",
-    "EXP_NAME": "resnet_badnets_grid",
+    "EXP_NAME": "test_fine_pruning",
     "PRUNING_RATES": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     "LAYER_KEYS": [
         "layer4.0.conv1",
@@ -13,6 +13,7 @@
         "layer4.1.conv1",
         "layer4.1.conv2"
     ],
+    "PRUNING_ACC_THRESHOLD": 0.04,
     "TRAIN_SIZE_LIMIT": 50000,
     "TEST_SIZE_LIMIT": 10000,
     "BATCH_SIZE": 128,
@@ -24,7 +25,7 @@
     "WD": 5e-4,
     "MOMENTUM": 0.9,
     "NUM_EPOCHS": 300,
-    "FINE_TUNE_EPOCHS": 8,
+    "FINE_TUNE_EPOCHS": 1,
     "BATCH_SIZE_CUDA": 128,
     "BATCH_SIZE_CPU": 64
 }

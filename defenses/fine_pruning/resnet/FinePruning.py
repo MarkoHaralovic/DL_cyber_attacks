@@ -67,6 +67,7 @@ NUM_WORKERS = config['NUM_WORKERS']
 EXP_NAME = config['EXP_NAME'] 
 POISONED_RATE =config["POISONED_RATE"]
 EPOCHS = config['FINE_TUNE_EPOCHS']
+PRUNING_ACC_THRESHOLD = config['PRUNING_ACC_THRESHOLD']
 TIMESTAMP = datetime.now().strftime("%m%d_%H%M")
 
 
@@ -259,7 +260,6 @@ if __name__ == "__main__":
     )
     
     """ Posioned Data and Poisoned  Labels """
-    
     backdoored_dataset_targeted = IndexedDataset(backdoored_data, backdoored_data_labels_targeted)
     backdoored_loader_targeted = DataLoader(
         backdoored_dataset_targeted,
@@ -344,7 +344,7 @@ if __name__ == "__main__":
     print(f"Original Accuracy on Backdoored Data (Targeted): {original_backdoor_accuracy_targeted}%")
     print(f"Original Loss on Backdoored Data (Targeted) : {original_backdoor_loss_targeted}%")
     
-    print(f"Targeted ASR  : {original_backdoor_accuracy_targeted}")
+    print(f"Original Targeted ASR  : {original_backdoor_accuracy_targeted}")
 
     print("---------------------------------------------------------------------------------------------------------------")
     
@@ -407,8 +407,16 @@ if __name__ == "__main__":
                 writer = csv.writer(file)
                 writer.writerow(["model", rate, LAYER_KEYS[layer_idx], accuracy,
                                  asr,backdoor_accuracy_targeted])
-
-            finePruning.restore_model()
+                
+            # Stop pruning if clean accuracy decreases by PRUNING_ACC_THRESHOLD
+            if original_accuracy - accuracy > PRUNING_ACC_THRESHOLD * 100 and layer_idx == len(layers_to_prune) - 1:
+                print(f"\nStopping pruning on layer {LAYER_KEYS[layer_idx]} with {PRUNING_ACC_THRESHOLD} threshold")
+                break
+            elif layer_idx == len(layer_to_prune) - 1 and rate == PRUNING_RATES[-1]:
+                # Last pruning rate and last layer
+                print(f"\nStopping pruning on layer {LAYER_KEYS[layer_idx]}. Accuracy is stil greater than the pruning threshold {PRUNING_ACC_THRESHOLD}.")
+            else:
+                finePruning.restore_model()
 
     print("\nDone")
     
@@ -492,6 +500,16 @@ if __name__ == "__main__":
 
     torch.save(fineTunedModel.state_dict(), save_path)
     print(f"Model saved to {save_path}")
+
+    print("\nFinePruning results:")
+    print("\tOrginal accuracy:", original_accuracy)
+    print("\tFinePruned accuracy:", ft_accuracy)
+    print()
+    print("\tOriginal untargeted ASR:", org_asr)
+    print("\tFinePruned untargeted ASR:", ft_asr)
+    print()
+    print("\tOriginal targeted ASR:", original_backdoor_accuracy_targeted)
+    print("\tFinePruned targeted ASR:", ft_backdoor_accuracy_targeted)
     
 
             
