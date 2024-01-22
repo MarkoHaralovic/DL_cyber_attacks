@@ -6,6 +6,7 @@ import torchvision
 from PIL import Image
 from torchvision import transforms
 from torchvision.transforms import functional as F
+from torchvision.datasets import CIFAR10
 
 sys.path.append("../")
 from PoisonedCIFAR10 import PoisonedCIFAR10
@@ -86,7 +87,7 @@ def load_CIFAR10_data(benign_root, batch_size, transform):
     trainset = torchvision.datasets.CIFAR10(root=benign_root, train=True, download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
 
-    testset = torchvision.datasets.CIFAR10(root=benign_root, train=True, download=True, transform=transform)
+    testset = torchvision.datasets.CIFAR10(root=benign_root, train=False, download=True, transform=transform)
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
 
     return trainset, trainloader, testset, testloader
@@ -115,10 +116,17 @@ if __name__ == "__main__":
     # uncomment to test adding a trigger
     # test_adding_trigger(test_image, add_square_trigger, add_grid_trigger)
 
-    poisoned_dataset = PoisonedCIFAR10(benign_dataset=trainset,
+    poisoned_dataset_train = PoisonedCIFAR10(benign_dataset=trainset,
                                        y_target=0,  # airplane
                                        poisoned_rate=0.05,
                                        poisoning_strategy=add_square_trigger)
+    
+    poisoned_dataset_test = PoisonedCIFAR10(benign_dataset=CIFAR10(root = benign_root,
+                                                                   train = False,
+                                                                   download = True),
+                                            y_target = 0,
+                                            poisoned_rate=0.05,
+                                            poisoning_strategy=add_square_trigger)
 
     # uncomment to show 10 sample images
     ################################
@@ -136,6 +144,7 @@ if __name__ == "__main__":
     ################################
     # uncomment to save poisoned model (warning: cpu/ram intensive!)
     ################################
-    # poisoned_dataset.save(os.path.join("..", "..", "datasets", "badnets_grid", "train"))
+    poisoned_dataset_train.save(os.path.join("..", "..", "datasets", "CIFAR10", "cifar-10", "badnets_square", "train"))
+    poisoned_dataset_test.save(os.path.join("..", "..", "datasets", "CIFAR10", "cifar-10", "badnets_square", "test"))
     ################################
     

@@ -4,6 +4,8 @@ datasets/CIFAR10/cifar-10/train/labels.npy
 datasets/CIFAR10/cifar-10/test/data.npy
 datasets/CIFAR10/cifar-10/test/labels.npy
 datasets/CIFAR10/cifar-10/bad_nets
+datasets/CIFAR10/cifar-10/badnets_grid
+datasets/CIFAR10/cifar-10/badnets_square
 datasets/badnets_grid
 datasets/CIFAR10/cifar-10/cifar-10-batches-py
 datasets/CIFAR10/cifar-10/cifar-10-python.tar.gz

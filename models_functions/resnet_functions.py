@@ -47,7 +47,7 @@ def train(net,epoch,trainloader):
     return train_loss, 100.0 * correct / total, training_time
 
 
-def test(net,epoch,testloader):
+def test(net,epoch,testloader,device):
     start_time = time.time()
 
     global best_acc
@@ -156,62 +156,42 @@ def plot_metrics(
     plt.savefig(
         os.path.join(os.path.curdir, "checkpoints", f"resnet18_metrics_{TIMESTAMP}.svg")
     )
+def evaluate_model(model, data_loader, device, transform):
+        """
+        Calculate model accuracy, loss, and attacker's success rate on given dataset
 
-def evaluate_model(model, data_loader, device, criterion=nn.CrossEntropyLoss()):
-    """ResNet18 model evaluation
+        Args:
+            model (torch.nn.Module): The neural network model to be evaluated.
+            data_loader (DataLoader): DataLoader object providing a dataset for evaluation.
+            device (str): The device on which the model and data are loaded for evaluation.
+            transform: Transforms to be applied during evaluation.
+            criterion: Loss function to calculate the loss.
 
-    Args:
-        model (torch.nn.Module): The neural network model to be evaluated.
-        data_loader (DataLoader): DataLoader object providing a dataset for evaluation.
-                                 The dataset should yield pairs of images and their corresponding labels.
-        device (str): The device on which the model and data are loaded for evaluation.
-                      Typically 'cuda' for GPU or 'cpu' for CPU.
-        criterion (torch.nn.Module): The loss function used for evaluation.
-                                     Default is nn.CrossEntropyLoss.
+        Returns:
+            float: The accuracy of the model on the provided dataset.
+            float: The average loss of the model on the provided dataset.
+        """
+        criterion=nn.CrossEntropyLoss()
+        model.eval()
+        total = 0
+        correct = 0
+        total_loss = 0
+        total_batches = 0
+        attack_successes = 0
+        total_backdoored = 0
 
-    Returns:
-        tuple: A tuple containing average loss and accuracy on the provided dataset.
+        with torch.no_grad():
+            for images, labels in tqdm(data_loader, desc="Evaluating model"):
+                images, labels = transform(images.to(device)), labels.to(device)
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                _, predicted = torch.max(outputs, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                total_loss += loss.item()
+                total_batches += 1
+                
+        accuracy = 100 * correct / total
+        average_loss = total_loss / total_batches
 
-    """
-    model.eval()
-    total_loss = 0.0
-    total_correct = 0
-    total_size = 0
-    resize_transform = transforms.Resize((224, 224), antialias=True)
-
-    with torch.no_grad():
-        for images, labels in tqdm(data_loader):
-            # Resize images here if facing memory issues with whole dataset reshaped at once
-            images = torch.stack([resize_transform(img) for img in images])
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            total_loss += loss.item()
-            _, predicted = torch.max(outputs, 1)
-            total_correct += (predicted == labels).sum().item()
-            total_size += labels.size(0)
-
-    average_loss = total_loss / total_size
-    accuracy = 100 * total_correct / total_size
-    return average_loss, accuracy
-
-def load_model(
-    n_classes,
-    model_name="resnet18",
-    device="cpu",
-    pretrained=True,
-    transfer_learning=False,
-): 
-    if pretrained:
-        # Load a pre-trained ResNet model
-        model = models.__dict__[model_name](pretrained=pretrained)
-
-        if transfer_learning:
-            # Change the number of output classes for transfer learning
-            in_features = model.fc.in_features
-            model.fc = torch.nn.Linear(in_features, n_classes)
-
-        if torch.cuda.is_available():
-            model.to(device)
-
-    return model
+        return accuracy, average_loss
